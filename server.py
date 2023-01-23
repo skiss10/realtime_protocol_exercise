@@ -18,8 +18,7 @@ s.bind(('localhost', port))
 
 # listen for incoming connections
 s.listen(1)
-
-print(f"Listening on localhost:{port}...")
+logging.debug(f"Listening on localhost:{port}...")
 
 while True:
     # establish a connection
