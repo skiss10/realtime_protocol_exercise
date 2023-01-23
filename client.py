@@ -10,13 +10,11 @@ logging.basicConfig(level=constants.LOG_LEVEL, filename=constants.LOG_FILE_PATH,
 logging.debug("===== Client - starting client.py =====")
 
 # get the port number and number of messages from command line
-logging.debug("Client - collecting variables from commandline")
 port = int(sys.argv[1])
 n = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
 
 # generate a random uuid client identifier
 client_id = str(uuid.uuid4())
-logging.debug("Client - client_id = %s." % client_id)
 
 # create a socket object
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
