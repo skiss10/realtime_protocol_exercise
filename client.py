@@ -16,8 +16,8 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # connect to the server
 client_socket.connect(('localhost', port))
 
-# send the client id and number of messages to the server
-client_socket.sendall(f"{client_id} {n}".encode())
+# send a message to the server
+client_socket.sendall("{} {}".format(client_id, n).encode())
 
 # close the connection
 client_socket.close()
