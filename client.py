@@ -5,34 +5,43 @@ import random
 import logging
 import constants
 
-# Configure logging
-logging.basicConfig(
-    level=constants.LOG_LEVEL,
-    filename=constants.LOG_FILE_PATH,
-    format='[%(asctime)s] %(levelname)s: %(message)s',
-    datefmt='%m-%d %H:%M:%S'
-    )
-logging.debug("===== Client - starting client.py =====")
+def connect_to_server(host_ip, port, client_id, n):
+    # create a socket object
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# get the port number and number of messages from command line
-port = int(sys.argv[1])
-n = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
+    # connect to the server
+    logging.debug("Client - attempting to connect to server")
+    client_socket.connect((host_ip, port))
 
-# generate a random uuid client identifier
-client_id = str(uuid.uuid4())
+    # send a message to the server
+    logging.debug("Client - sending initial payload to server")
+    client_socket.sendall("{} {}".format(client_id, n).encode())
 
-# create a socket object
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # close the connection
+    logging.debug("Client - closing connection")
+    client_socket.close()
 
-# connect to the server
-logging.debug("Client - attempting to connect to server")
-host_ip = 'localhost'
-client_socket.connect((host_ip, port))
+def main():
+    # Configure logging
+    logging.basicConfig(
+        level=constants.LOG_LEVEL,
+        filename=constants.LOG_FILE_PATH,
+        format='[%(asctime)s] %(levelname)s: %(message)s',
+        datefmt='%m-%d %H:%M:%S'
+        )
+    logging.debug("===== Client - starting client.py =====")
 
-# send a message to the server
-logging.debug("Client - sending initial payload to server")
-client_socket.sendall("{} {}".format(client_id, n).encode())
+    # get the port number and number of messages from command line
+    port = int(sys.argv[1])
+    n = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
 
-# close the connection
-logging.debug("Client - closing connection")
-client_socket.close()
+    # generate a random uuid client identifier
+    client_id = str(uuid.uuid4())
+
+    # define server ip
+    host_ip = 'localhost'
+
+    connect_to_server(host_ip, port, client_id, n)
+
+if __name__ == '__main__':
+    main()
