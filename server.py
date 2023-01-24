@@ -4,7 +4,12 @@ import logging
 import constants
 
 # Configure logging
-logging.basicConfig(level=constants.LOG_LEVEL, filename=constants.LOG_FILE_PATH,format='[%(asctime)s] %(levelname)s: %(message)s', datefmt='%m-%d %H:%M:%S')
+logging.basicConfig(
+    level=constants.LOG_LEVEL,
+    filename=constants.LOG_FILE_PATH,
+    format='[%(asctime)s] %(levelname)s: %(message)s',
+    datefmt='%m-%d %H:%M:%S'
+    )
 logging.debug("===== Server - starting server.py =====")
 
 # get the port number from command line
