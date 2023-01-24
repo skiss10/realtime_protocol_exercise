@@ -15,7 +15,7 @@ def start_server(port):
 
     # listen for incoming connections
     s.listen(1)
-    logging.debug(f"Listening on localhost:{port} ...")
+    logging.debug("Listening on localhost:{%s} ...", port)
 
     while True:
         # establish a connection
@@ -24,7 +24,7 @@ def start_server(port):
 
         # receive data from the client
         data = conn.recv(1024)
-        logging.debug("Server - data recieved: %s" % data)
+        logging.debug("Server - data recieved: %s", data)
 
         # # send data back to the client
         # conn.sendall(data)
