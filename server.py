@@ -3,43 +3,52 @@ import sys
 import logging
 import constants
 
-# Configure logging
-logging.basicConfig(
-    level=constants.LOG_LEVEL,
-    filename=constants.LOG_FILE_PATH,
-    format='[%(asctime)s] %(levelname)s: %(message)s',
-    datefmt='%m-%d %H:%M:%S'
-    )
-logging.debug("===== Server - starting server.py =====")
+def start_server(port):
+    """
+    This function initates the socket server
+    """
+    # create a socket object
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# get the port number from command line
-port = int(sys.argv[1])
+    # bind the socket to a specific address and port
+    s.bind(('localhost', port))
 
-# create a socket object
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # listen for incoming connections
+    s.listen(1)
+    logging.debug(f"Listening on localhost:{port} ...")
 
-# bind the socket to a specific address and port
-s.bind(('localhost', port))
+    while True:
+        # establish a connection
+        conn, addr = s.accept()
+        print(f"Connected by {addr}")
 
-# listen for incoming connections
-s.listen(1)
-logging.debug(f"Listening on localhost:{port} ...")
+        # receive data from the client
+        data = conn.recv(1024)
+        logging.debug("Server - data recieved: %s" % data)
 
-while True:
-    # establish a connection
-    conn, addr = s.accept()
-    print(f"Connected by {addr}")
+        # # send data back to the client
+        # conn.sendall(data)
 
-    # receive data from the client
-    data = conn.recv(1024)
-    logging.debug("Server - data recieved: %s" % data)
+        # close the connection
+        logging.debug("Server - closing connection")
+        conn.close()
+        logging.debug("Server - connection closed")
 
-    # # send data back to the client
-    # conn.sendall(data)
+def main():
+    # Configure logging
+    logging.basicConfig(
+        level=constants.LOG_LEVEL,
+        filename=constants.LOG_FILE_PATH,
+        format='[%(asctime)s] %(levelname)s: %(message)s',
+        datefmt='%m-%d %H:%M:%S'
+        )
+    logging.debug("===== Server - starting server.py =====")
 
-    # close the connection
-    logging.debug("Server - closing connection")
-    conn.close()
-    logging.debug("Server - connection closed")
+    # get the port number from command line
+    port = int(sys.argv[1])
 
+    # start the server
+    start_server(port)
 
+if __name__ == '__main__':
+    main()
