@@ -26,10 +26,11 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # connect to the server
 logging.debug("Client - attempting to connect to server")
-client_socket.connect(('localhost', port))
+host_ip = 'localhost'
+client_socket.connect((host_ip, port))
 
 # send a message to the server
-logging.debug("Client - sending client_id and sequence length from client to server")
+logging.debug("Client - sending initial payload to server")
 client_socket.sendall("{} {}".format(client_id, n).encode())
 
 # close the connection
