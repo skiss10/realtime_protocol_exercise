@@ -8,19 +8,18 @@ def start_server(port):
     This function initates the socket server
     """
     # create a socket object
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcpsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # bind the socket to a specific address and port
-    s.bind(('localhost', port))
+    tcpsocket.bind(('localhost', port))
 
     # listen for incoming connections
-    s.listen(1)
+    tcpsocket.listen(1)
     logging.debug("Listening on localhost:{%s} ...", port)
 
     while True:
         # establish a connection
-        conn, addr = s.accept()
-        print(f"Connected by {addr}")
+        conn, addr = tcpsocket.accept()
 
         # receive data from the client
         data = conn.recv(1024)
