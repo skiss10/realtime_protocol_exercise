@@ -2,6 +2,7 @@ import socket
 import sys
 import logging
 import constants
+import struct
 
 def start_server(port):
     """
@@ -22,11 +23,13 @@ def start_server(port):
         conn, addr = tcpsocket.accept()
 
         # receive data from the client
-        data = conn.recv(1024)
+        data = conn.recv(1024) #write test for data format
         logging.debug("Server - data recieved: %s", data)
 
-        # # send data back to the client
-        # conn.sendall(data)
+        # make incrementing uint34 list of messages
+        sequence_length = int(data.decode().split(" ")[1])
+        uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
+        logging.debug("Server - list of uint32 numbers: %s", uint32_numbers)
 
         # close the connection
         logging.debug("Server - closing connection")
