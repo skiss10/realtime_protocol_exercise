@@ -1,8 +1,9 @@
 import socket
 import sys
 import logging
-import constants
 import struct
+import hashlib
+import constants
 
 def start_server(port):
     """
@@ -30,6 +31,20 @@ def start_server(port):
         sequence_length = int(data.decode().split(" ")[1])
         uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
         logging.debug("Server - list of uint32 numbers: %s", uint32_numbers)
+
+        # calculate hash of the uint32 numbers
+        # concatenate all values in the list
+        data = "".join(str(i) for i in uint32_numbers)
+
+        # create md5 hash object
+        md5 = hashlib.md5()
+
+        # update the hash object with the data
+        md5.update(data.encode())
+
+        # get the hexadecimal representation of the md5 hash
+        checksum = md5.hexdigest()
+        logging.debug("Server - hash of uint32 numbers: %s", checksum)
 
         # close the connection
         logging.debug("Server - closing connection")
