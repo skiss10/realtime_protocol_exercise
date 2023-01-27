@@ -48,9 +48,9 @@ def main():
 
         logging.debug("Client - data recieved: %s", data)
 
-        # close the connection
-        logging.debug("Client - closing connection")
-        client_socket.close()
+        # # close the connection
+        # logging.debug("Client - closing connection")
+        # client_socket.close()
 
         break
 
