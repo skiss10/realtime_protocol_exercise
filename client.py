@@ -52,7 +52,5 @@ def main():
         # logging.debug("Client - closing connection")
         # client_socket.close()
 
-        break
-
 if __name__ == '__main__':
     main()
