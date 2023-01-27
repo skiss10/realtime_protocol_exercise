@@ -16,7 +16,7 @@ def start_server(port):
     tcpsocket.bind(('localhost', port))
 
     # listen for incoming connections
-    tcpsocket.listen(1)
+    tcpsocket.listen()
     logging.debug("Listening on localhost:{%s} ...", port)
 
     while True:
