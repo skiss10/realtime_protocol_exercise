@@ -1,5 +1,6 @@
 import socket
 import sys
+import time
 import logging
 import struct
 import hashlib
@@ -28,10 +29,26 @@ def calculate_checksum(uint32_numbers):
     logging.debug("Server - hash of uint32 numbers: %s", checksum)
     return checksum
 
-def client_thread(client_socket, client_address):
+def message_handler(uint32_numbers, client_socket, client_address):
+    # get the hexadecimal representation of the md5 hash
+    checksum = calculate_checksum(uint32_numbers)
+
+    logging.debug("Server - sending uint32 numbers to client %s" , client_address)
+    for num in uint32_numbers:
+        # Send the uint32
+        logging.debug("Server - Sending: " + str(num))
+        client_socket.sendall(num)
+        time.sleep(1)
+
+    # send a message to the server
+    logging.debug("Server - sending checksum payload to client")
+    client_socket.sendall("{}".format(checksum).encode())
+
+
+def client_handler(client_socket, client_address):
     """
     client_thread handles all logic needed on a per
-    client basis. 
+    client basis.
 
     Input: client socket and client address
     """
@@ -46,12 +63,8 @@ def client_thread(client_socket, client_address):
     uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
     logging.debug("Server - list of uint32 numbers: %s", uint32_numbers)
 
-    # get the hexadecimal representation of the md5 hash
-    checksum = calculate_checksum(uint32_numbers)
-
-    # send a message to the server
-    logging.debug("Server - sending checksum payload to client")
-    client_socket.sendall("{}".format(checksum).encode())
+    # send payload
+    message_handler(uint32_numbers, client_socket, client_address)
 
     # # close the connection
     # logging.debug("Server - closing connection")
@@ -100,7 +113,7 @@ def main():
         client_socket, client_address = server_socket.accept()
 
         # Start a new thread for each client
-        start_new_thread(client_thread, (client_socket, client_address))
+        start_new_thread(client_handler, (client_socket, client_address))
 
 if __name__ == '__main__':
     main()
