@@ -46,7 +46,7 @@ def main():
         # receive data from the client
         data = client_socket.recv(1024) #write test for data recieved from server format
 
-        logging.debug("Client - data recieved: %s", data)
+        logging.debug("Client %s - data received: %s" % (client_socket, data))
 
         # # close the connection
         # logging.debug("Client - closing connection")

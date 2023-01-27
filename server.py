@@ -36,13 +36,18 @@ def message_handler(uint32_numbers, client_socket, client_address):
     logging.debug("Server - sending uint32 numbers to client %s" , client_address)
     for num in uint32_numbers:
         # Send the uint32
-        logging.debug("Server - Sending: " + str(num))
+        logging.debug("Server - Sending: " + str(num) + "to " + str(client_address))
         client_socket.sendall(num)
         time.sleep(1)
 
     # send a message to the server
     logging.debug("Server - sending checksum payload to client")
     client_socket.sendall("{}".format(checksum).encode())
+
+    # # close the connection
+    # logging.debug("Server - closing connection")
+    # client_socket.close()
+    # logging.debug("Server - connection closed")
 
 
 def client_handler(client_socket, client_address):
@@ -65,11 +70,6 @@ def client_handler(client_socket, client_address):
 
     # send payload
     message_handler(uint32_numbers, client_socket, client_address)
-
-    # # close the connection
-    # logging.debug("Server - closing connection")
-    # client_socket.close()
-    # logging.debug("Server - connection closed")
 
 def start_server(port):
     """
