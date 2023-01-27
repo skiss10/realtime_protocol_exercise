@@ -17,9 +17,7 @@ def connect_to_server(host_ip, port, client_id, n):
     logging.debug("Client - sending initial payload to server")
     client_socket.sendall("{} {}".format(client_id, n).encode())
 
-    # close the connection
-    logging.debug("Client - closing connection")
-    client_socket.close()
+    return client_socket
 
 def main():
     # Configure logging
@@ -41,7 +39,20 @@ def main():
     # define server ip
     host_ip = 'localhost'
 
-    connect_to_server(host_ip, port, client_id, n)
+    # connect to server
+    client_socket = connect_to_server(host_ip, port, client_id, n)
+
+    while True:
+        # receive data from the client
+        data = client_socket.recv(1024) #write test for data recieved from server format
+
+        logging.debug("Client - data recieved: %s", data)
+
+        # close the connection
+        logging.debug("Client - closing connection")
+        client_socket.close()
+
+        break
 
 if __name__ == '__main__':
     main()

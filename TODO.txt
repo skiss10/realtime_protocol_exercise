@@ -1,4 +1,6 @@
-1) Implement tests for existing server and client code
+1) Define a payload format for
+
+1.5) Implement tests for existing server and client code
 2) Update server.py to be able to handle multiple clients making request
 3) Create the state store abstraction class
 4) Iniate a local state store
