@@ -7,6 +7,15 @@ import hashlib
 from _thread import start_new_thread
 import constants
 
+class Message:
+    """
+    Define a message object to be sent over the socket
+    """
+    def __init__(self, name, data, client_id):
+        self.name = name
+        self.data = data
+        self.client_id = client_id
+
 def calculate_checksum(uint32_numbers):
     """
     Input: list of uint32 numbers of arbitrary length

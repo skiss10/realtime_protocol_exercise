@@ -3,7 +3,23 @@ import sys
 import uuid
 import random
 import logging
+import re
 import constants
+
+class Message:
+    """
+    Define a message object to be sent over the socket
+    """
+    def __init__(self, name, data, client_id):
+        self.name = name
+        self.data = data
+        self.client_id = client_id
+
+def data_handler(client_socket, data):
+    """
+    Handle inbound data from server
+    """
+    logging.debug("Client %s - datazz received: %s" % (client_socket, data))
 
 def connect_to_server(host_ip, port, client_id, n):
     # create a socket object
@@ -46,7 +62,7 @@ def main():
         # receive data from the client
         data = client_socket.recv(1024) #write test for data recieved from server format
 
-        logging.debug("Client %s - data received: %s" % (client_socket, data))
+        data_handler(client_socket, data)
 
         # # close the connection
         # logging.debug("Client - closing connection")
