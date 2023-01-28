@@ -2,6 +2,7 @@ import socket
 import sys
 import time
 import logging
+import pickle
 import struct
 import hashlib
 from _thread import start_new_thread
@@ -38,20 +39,42 @@ def calculate_checksum(uint32_numbers):
     logging.debug("Server - hash of uint32 numbers: %s", checksum)
     return checksum
 
-def message_handler(uint32_numbers, client_socket, client_address):
-    # get the hexadecimal representation of the md5 hash
-    checksum = calculate_checksum(uint32_numbers)
+def message_handler(incoming_message, client_socket, client_address, server_name):
+    """
+    Handle incoming messages
+    """
+    if incoming_message.name == "greeting":
+    # make incrementing uint34 list of messages
+        sequence_length = incoming_message.data
+        uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
+        logging.debug("Server - list of uint32 numbers: %s", uint32_numbers)
 
-    logging.debug("Server - sending uint32 numbers to client %s" , client_address)
-    for num in uint32_numbers:
-        # Send the uint32
-        logging.debug("Server - Sending: " + str(num) + "to " + str(client_address))
-        client_socket.sendall(num)
-        time.sleep(1)
+        # Send each uint32
+        logging.debug("Server - sending uint32 numbers to client %s" , client_address)
+        for num in uint32_numbers:
+            # create response message
+            message = Message("stream_payload", num, server_name) # TODO figure out client_id field
 
-    # send a message to the server
-    logging.debug("Server - sending checksum payload to client")
-    client_socket.sendall("{}".format(checksum).encode())
+            #serialize message
+            serialized_message = pickle.dumps(message)
+            
+            # send stream payload message
+            logging.debug("Server - Sending: " + str(num) + "to " + str(client_address))
+            client_socket.sendall(serialized_message)
+            time.sleep(1)
+
+        # get the hexadecimal representation of the md5 hash
+        checksum = calculate_checksum(uint32_numbers)
+
+        # create response message
+        message = Message("checksum", checksum, "Server-01") # TODO figure out client_id field
+
+        #serialize message
+        serialized_message = pickle.dumps(message)
+
+        # send a message to the server
+        logging.debug("Server - sending checksum payload to client")
+        client_socket.sendall(serialized_message)
 
     # # close the connection
     # logging.debug("Server - closing connection")
@@ -59,7 +82,7 @@ def message_handler(uint32_numbers, client_socket, client_address):
     # logging.debug("Server - connection closed")
 
 
-def client_handler(client_socket, client_address):
+def client_handler(client_socket, client_address, server_name):
     """
     client_thread handles all logic needed on a per
     client basis.
@@ -69,16 +92,14 @@ def client_handler(client_socket, client_address):
     logging.debug("Server - Connection from: %s", client_address)
 
     # receive data from the client
-    data = client_socket.recv(1024) #write test for data format (num bytes and format)
-    logging.debug("Server - data recieved: %s", data)
+    serialized_message = client_socket.recv(1024) #write test for data format (num bytes and format)
 
-    # make incrementing uint34 list of messages
-    sequence_length = int(data.decode().split(" ")[1])
-    uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
-    logging.debug("Server - list of uint32 numbers: %s", uint32_numbers)
+    # unserialize message
+    incoming_message = pickle.loads(serialized_message)
+    logging.debug("Server - message type recieved: %s", incoming_message.name)
 
-    # send payload
-    message_handler(uint32_numbers, client_socket, client_address)
+    # handle message
+    message_handler(incoming_message, client_socket, client_address, server_name)
 
 def start_server(port):
     """
@@ -102,6 +123,9 @@ def start_server(port):
     return server_socket
 
 def main():
+    #define server name
+    server_name = "server-01"
+
     # Configure logging
     logging.basicConfig(
         level=constants.LOG_LEVEL,
@@ -109,7 +133,7 @@ def main():
         format='[%(asctime)s] %(levelname)s: %(message)s',
         datefmt='%m-%d %H:%M:%S'
         )
-    logging.debug("===== Server - starting server.py =====")
+    logging.debug("===== Server - starting %s =====" % server_name)
 
     # get the port number
     port = int(sys.argv[1])
@@ -122,7 +146,7 @@ def main():
         client_socket, client_address = server_socket.accept()
 
         # Start a new thread for each client
-        start_new_thread(client_handler, (client_socket, client_address))
+        start_new_thread(client_handler, (client_socket, client_address, server_name))
 
 if __name__ == '__main__':
     main()
