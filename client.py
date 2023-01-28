@@ -16,18 +16,18 @@ class Message:
         self.data = data
         self.client_id = client_id
 
-def message_handler(client_socket, incoming_message):
+def message_handler(client_socket, incoming_message, uint32_numbers):
     """
     Handle inbound data from server
     """
     if incoming_message.name == "stream_payload":
-        pass
+        uint32_numbers.append(incoming_message.data)
 
     if incoming_message.name == "checksum":
         # compare checksums
 
         server_checksum = incoming_message.data
-        client_checksum = incoming_message.data #TODO calculate checksum
+        client_checksum = calculate_checksum(uint32_numbers)
         logging.debug("Client -  Client checksum is %s. Server checksum is: %s" % (client_checksum, server_checksum))
 
         if server_checksum == client_checksum:
@@ -84,6 +84,9 @@ def main():
     port = int(sys.argv[1])
     sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
 
+    # sequence store
+    uint32_numbers = []
+
     # define server ip
     host_ip = 'localhost'
 
@@ -100,7 +103,7 @@ def main():
         logging.debug("Client - message type recieved: %s", incoming_message.name)
 
         # send to incoming message handler
-        message_handler(client_socket, incoming_message)
+        message_handler(client_socket, incoming_message, uint32_numbers)
 
 if __name__ == '__main__':
     main()
