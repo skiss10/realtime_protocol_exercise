@@ -3,6 +3,7 @@ import sys
 import uuid
 import random
 import pickle
+from utils.checksum import calculate_checksum
 import logging
 import constants
 
@@ -23,8 +24,18 @@ def message_handler(client_socket, incoming_message):
         pass
 
     if incoming_message.name == "checksum":
-        logging.debug("Client %s - checksum: %s recieved from server" % (client_socket, incoming_message.data))
+        # compare checksums
 
+        server_checksum = incoming_message.data
+        client_checksum = incoming_message.data #TODO calculate checksum
+        logging.debug("Client -  Client checksum is %s. Server checksum is: %s" % (client_checksum, server_checksum))
+
+        if server_checksum == client_checksum:
+            logging.debug("Client - PASS - Checksums from client and Server are the same")
+
+        else:
+            logging.debug("Client - FAIL - Checksums from client and Server are not the same")
+        
         # close the connection
         logging.debug("Client - closing connection")
         client_socket.close()
