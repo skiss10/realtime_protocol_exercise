@@ -3,8 +3,8 @@ import sys
 import uuid
 import random
 import pickle
-from utils.checksum import calculate_checksum
 import logging
+from utils.checksum import calculate_checksum
 import constants
 
 class Message:
@@ -24,11 +24,12 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
         uint32_numbers.append(incoming_message.data)
 
     if incoming_message.name == "checksum":
+        logging.debug("Client - uint32 numbers recieved from server are %s" % uint32_numbers)
         # compare checksums
-
         server_checksum = incoming_message.data
         client_checksum = calculate_checksum(uint32_numbers)
-        logging.debug("Client -  Client checksum is %s. Server checksum is: %s" % (client_checksum, server_checksum))
+        logging.debug("Client - checksum recieved from server: %s" % server_checksum)
+        logging.debug("Client - calculated checksum from client: %s" % client_checksum)
 
         if server_checksum == client_checksum:
             logging.debug("Client - PASS - Checksums from client and Server are the same")
@@ -40,7 +41,6 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
         logging.debug("Client - closing connection")
         client_socket.close()
 
-
 def connect_to_server(host_ip, port, client_id, sequence_length):
     """
     Initiate server connection
@@ -49,17 +49,18 @@ def connect_to_server(host_ip, port, client_id, sequence_length):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # connect to the server
-    logging.debug("Client - attempting to connect to server")
+    logging.debug("Client - connecting to server...")
     client_socket.connect((host_ip, port))
 
     # format introduction message
     message = Message("greeting", sequence_length, client_id)
+    logging.debug("Client - requested sequence of length: %s", sequence_length)
 
     # serialize message
     serialized_message = pickle.dumps(message)
 
     # send a message to the server
-    logging.debug("Client - sending initial payload to server")
+    logging.debug("Client - sending greeting message")
     client_socket.sendall(serialized_message)
 
     return client_socket

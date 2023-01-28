@@ -4,8 +4,8 @@ import time
 import logging
 import pickle
 import struct
-from utils.checksum import calculate_checksum
 from _thread import start_new_thread
+from utils.checksum import calculate_checksum
 import constants
 
 class Message:
@@ -24,6 +24,7 @@ def message_handler(incoming_message, client_socket, client_address, server_name
     if incoming_message.name == "greeting":
     # make incrementing uint34 list of messages
         sequence_length = incoming_message.data
+        logging.debug("Server - sequence length requested: %s", sequence_length)
         uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
         logging.debug("Server - list of uint32 numbers: %s", uint32_numbers)
 
@@ -37,12 +38,13 @@ def message_handler(incoming_message, client_socket, client_address, server_name
             serialized_message = pickle.dumps(message)
             
             # send stream payload message
-            logging.debug("Server - Sending: " + str(num) + "to " + str(client_address))
+            logging.debug("Server - Sending: " + str(num) + " to " + str(client_address))
             client_socket.sendall(serialized_message)
             time.sleep(1)
 
         # get the hexadecimal representation of the md5 hash
         checksum = calculate_checksum(uint32_numbers)
+        logging.debug("Server - calculated checksum: %s" , checksum)
 
         # create response message
         message = Message("checksum", checksum, "Server-01") # TODO figure out client_id field
@@ -59,7 +61,6 @@ def message_handler(incoming_message, client_socket, client_address, server_name
     # client_socket.close()
     # logging.debug("Server - connection closed")
 
-
 def client_handler(client_socket, client_address, server_name):
     """
     client_thread handles all logic needed on a per
@@ -74,7 +75,7 @@ def client_handler(client_socket, client_address, server_name):
 
     # unserialize message
     incoming_message = pickle.loads(serialized_message)
-    logging.debug("Server - message type recieved: %s", incoming_message.name)
+    logging.debug("Server - message recieved of type: %s", incoming_message.name)
 
     # handle message
     message_handler(incoming_message, client_socket, client_address, server_name)

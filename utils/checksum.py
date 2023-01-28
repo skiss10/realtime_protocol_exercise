@@ -24,5 +24,4 @@ def calculate_checksum(uint32_numbers):
     checksum = md5.hexdigest()
 
     # return checksum
-    logging.debug("Server - hash of uint32 numbers: %s", checksum)
     return checksum
