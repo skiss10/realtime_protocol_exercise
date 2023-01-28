@@ -24,12 +24,12 @@ def message_handler(incoming_message, client_socket, client_address, server_name
     if incoming_message.name == "greeting":
     # make incrementing uint34 list of messages
         sequence_length = incoming_message.data
-        logging.debug("Server - sequence length requested: %s", sequence_length)
+        logging.info("Server - sequence length requested: %s", sequence_length)
         uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
-        logging.debug("Server - list of uint32 numbers: %s", uint32_numbers)
+        logging.info("Server - list of uint32 numbers: %s", uint32_numbers)
 
         # Send each uint32
-        logging.debug("Server - sending uint32 numbers to client %s" , client_address)
+        logging.info("Server - sending uint32 numbers to client %s" , client_address)
         for num in uint32_numbers:
             # create response message
             message = Message("stream_payload", num, server_name) # TODO figure out client_id field
@@ -38,13 +38,13 @@ def message_handler(incoming_message, client_socket, client_address, server_name
             serialized_message = pickle.dumps(message)
             
             # send stream payload message
-            logging.debug("Server - Sending: " + str(num) + " to " + str(client_address))
+            logging.info("Server - Sending: " + str(num) + " to " + str(client_address))
             client_socket.sendall(serialized_message)
             time.sleep(1)
 
         # get the hexadecimal representation of the md5 hash
         checksum = calculate_checksum(uint32_numbers)
-        logging.debug("Server - calculated checksum: %s" , checksum)
+        logging.info("Server - calculated checksum: %s" , checksum)
 
         # create response message
         message = Message("checksum", checksum, "Server-01") # TODO figure out client_id field
@@ -53,13 +53,13 @@ def message_handler(incoming_message, client_socket, client_address, server_name
         serialized_message = pickle.dumps(message)
 
         # send a message to the server
-        logging.debug("Server - sending checksum payload to client")
+        logging.info("Server - sending checksum payload to client")
         client_socket.sendall(serialized_message)
 
     # # close the connection
-    # logging.debug("Server - closing connection")
+    # logging.info("Server - closing connection")
     # client_socket.close()
-    # logging.debug("Server - connection closed")
+    # logging.info("Server - connection closed")
 
 def client_handler(client_socket, client_address, server_name):
     """
@@ -68,14 +68,14 @@ def client_handler(client_socket, client_address, server_name):
 
     Input: client socket and client address
     """
-    logging.debug("Server - Connection from: %s", client_address)
+    logging.info("Server - Connection from: %s", client_address)
 
     # receive data from the client
     serialized_message = client_socket.recv(1024) #write test for data format (num bytes and format)
 
     # unserialize message
     incoming_message = pickle.loads(serialized_message)
-    logging.debug("Server - message recieved of type: %s", incoming_message.name)
+    logging.info("Server - message recieved of type: %s", incoming_message.name)
 
     # handle message
     message_handler(incoming_message, client_socket, client_address, server_name)
@@ -97,7 +97,7 @@ def start_server(port):
 
     # listen for incoming connections
     server_socket.listen(1)
-    logging.debug("Listening on localhost:{%s} ...", port)
+    logging.info("Listening on localhost:{%s} ...", port)
 
     return server_socket
 
@@ -112,7 +112,7 @@ def main():
         format='[%(asctime)s] %(levelname)s: %(message)s',
         datefmt='%m-%d %H:%M:%S'
         )
-    logging.debug("===== Server - starting %s =====" % server_name)
+    logging.info("===== Server - starting %s =====" % server_name)
 
     # get the port number
     port = int(sys.argv[1])
