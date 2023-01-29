@@ -16,6 +16,24 @@ class Message:
         self.data = data
         self.client_id = client_id
 
+def compare_stream_hash(uint32_numbers, incoming_message): #TODO, make test to ensure both are unserialzied list of uint32
+    """
+    Compare local and recieved hash of uint32 sequence
+    """
+    logging.info("Client - uint32 numbers recieved from server are %s" % uint32_numbers)
+    # compare checksums
+    server_checksum = incoming_message.data
+    client_checksum = calculate_checksum(uint32_numbers)
+    logging.info("Client - checksum recieved from server: %s" % server_checksum)
+    logging.info("Client - calculated checksum from client: %s" % client_checksum)
+
+    if server_checksum == client_checksum:
+        logging.info("Client - PASS - Checksums from client and Server are the same")
+
+    else:
+        logging.info("Client - FAIL - Checksums from client and Server are not the same")
+
+
 def message_handler(client_socket, incoming_message, uint32_numbers):
     """
     Handle inbound data from server
@@ -23,23 +41,15 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
     if incoming_message.name == "stream_payload":
         uint32_numbers.append(incoming_message.data)
 
-    if incoming_message.name == "checksum":
-        logging.info("Client - uint32 numbers recieved from server are %s" % uint32_numbers)
-        # compare checksums
-        server_checksum = incoming_message.data
-        client_checksum = calculate_checksum(uint32_numbers)
-        logging.info("Client - checksum recieved from server: %s" % server_checksum)
-        logging.info("Client - calculated checksum from client: %s" % client_checksum)
+    elif incoming_message.name == "checksum":
+        compare_stream_hash(uint32_numbers, incoming_message)
 
-        if server_checksum == client_checksum:
-            logging.info("Client - PASS - Checksums from client and Server are the same")
-
-        else:
-            logging.info("Client - FAIL - Checksums from client and Server are not the same")
-        
         # close the connection
         logging.info("Client - closing connection")
         client_socket.close()
+
+    else:
+        logging.info("Client - message_handler recieved unknown message name type. Discarding message...")
 
 def format_greeting(sequence_length, client_id):
     """
