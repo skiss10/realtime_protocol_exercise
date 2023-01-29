@@ -124,16 +124,23 @@ def main():
     client_socket.sendall(serialized_greeting)
 
     while True:
-        # receive data from the client
-        # TODO #write test for data recieved from server format
-        serialized_message = client_socket.recv(1024)
+        try:
+            # perform socket I/O operations
+            serialized_message = client_socket.recv(1024)
 
-        # unserialize message
-        incoming_message = pickle.loads(serialized_message)
-        logging.info("Client - message type recieved: %s", incoming_message.name)
+            # unserialize message
+            incoming_message = pickle.loads(serialized_message)
+            logging.info("Client - message type recieved: %s", incoming_message.name)
 
-        # send to incoming message handler
-        message_handler(client_socket, incoming_message, uint32_numbers)
+            # send to incoming message handler
+            message_handler(client_socket, incoming_message, uint32_numbers)
+
+        except OSError:
+            # The socket is closed if a socket.error is raised
+            print("The client socket has been closed.")
+            logging.info("Client - the client socket for %s has been closed." % client_id)
+            break
+
 
 if __name__ == '__main__':
     main()
