@@ -112,12 +112,18 @@ def main():
     # start the server
     server_socket = start_server(port)
 
-    while True:
-        # establish a connection
-        client_socket, client_address = server_socket.accept()
+    try:
+        while True:
+            # establish a connection
+            client_socket, client_address = server_socket.accept()
 
-        # Start a new thread for each client
-        start_new_thread(client_handler, (client_socket, client_address, server_name))
+            # Start a new thread for each client
+            start_new_thread(client_handler, (client_socket, client_address, server_name))
+
+    except KeyboardInterrupt:
+        server_socket.close()
+        print("The Server has been stopped and the server socket has been closed.")
+        logging.info("Server - the server has been stopped")
 
 if __name__ == '__main__':
     main()
