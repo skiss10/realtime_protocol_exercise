@@ -3,7 +3,6 @@ Checksum module
 """
 
 import hashlib
-import logging
 
 def calculate_checksum(uint32_numbers):
     """
