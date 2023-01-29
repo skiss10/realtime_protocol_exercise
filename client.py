@@ -41,7 +41,23 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
         logging.info("Client - closing connection")
         client_socket.close()
 
-def connect_to_server(host_ip, port, client_id, sequence_length):
+def format_greeting(sequence_length, client_id):
+    """
+    Function to format greeting message from client to server
+    """
+
+    # format introduction message
+    message = Message("greeting", sequence_length, client_id)
+    logging.info("Client - requesting sequence of length: %s", sequence_length)
+
+    # serialize message
+    serialized_message = pickle.dumps(message)
+
+    #return serialized message
+    return serialized_message
+
+
+def connect_to_server(host_ip, port):
     """
     Initiate server connection
     """
@@ -52,17 +68,7 @@ def connect_to_server(host_ip, port, client_id, sequence_length):
     logging.info("Client - connecting to server...")
     client_socket.connect((host_ip, port))
 
-    # format introduction message
-    message = Message("greeting", sequence_length, client_id)
-    logging.info("Client - requested sequence of length: %s", sequence_length)
-
-    # serialize message
-    serialized_message = pickle.dumps(message)
-
-    # send a message to the server
-    logging.info("Client - sending greeting message")
-    client_socket.sendall(serialized_message)
-
+    #return connected socket
     return client_socket
 
 def main():
@@ -82,17 +88,24 @@ def main():
     logging.info("===== Client - starting %s =====" % client_id)
 
     # get the port number and number of messages from command line
-    port = int(sys.argv[1])
+    port = int(sys.argv[1]) #TODO add assert here somewhere
     sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
 
-    # sequence store
+    # local sequence store
     uint32_numbers = []
 
     # define server ip
     host_ip = 'localhost'
 
     # connect to server
-    client_socket = connect_to_server(host_ip, port, client_id, sequence_length)
+    client_socket = connect_to_server(host_ip, port)
+
+    # create greeting message for server
+    serialized_greeting = format_greeting(sequence_length, client_id)
+
+    # send a message to the server
+    logging.info("Client - sending greeting message")
+    client_socket.sendall(serialized_greeting)
 
     while True:
         # receive data from the client
