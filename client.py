@@ -6,6 +6,7 @@ import pickle
 import logging
 from utils.checksum import calculate_checksum
 import constants
+import time
 
 class Message:
     """
@@ -50,7 +51,7 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
     else:
         logging.info("Client - message_handler recieved unknown message name type. Discarding message...")
 
-def format_greeting(sequence_length, client_id): #TODO, test to ensure serialized message has expected format.
+def format_greeting(sequence_length, client_id):
     """
     Function to format greeting message from client to server
     """
@@ -66,18 +67,32 @@ def format_greeting(sequence_length, client_id): #TODO, test to ensure serialize
     return serialized_message
 
 
-def connect_to_server(host_ip, port): #TODO, test to ensure good connection on given port and host_ip
+def connect_to_server(host_ip, port):
     """
     Initiate server connection
     """
     # create a socket object
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # connect to the server
-    logging.info("Client - connecting to server...")
-    client_socket.connect((host_ip, port))
+    # flag to indicate if a connection has been established
+    connected = False
 
-    #return connected socket
+    # keep trying to connect to the server every 15 seconds until a connection is established
+    while not connected:
+        try:
+            # connect to the server
+            logging.info("Client - connecting to server...")
+            client_socket.connect((host_ip, port))
+
+            # set the connected flag to True
+            connected = True
+
+        except socket.error as err:
+            logging.info("Client - connection error: {}".format(err))
+            logging.info("Client - retrying connection in 15 seconds...")
+            time.sleep(15)
+
+    # return connected socket
     return client_socket
 
 def main():
