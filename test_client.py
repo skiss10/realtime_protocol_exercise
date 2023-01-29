@@ -1,3 +1,7 @@
+"""
+Test module for client.py
+"""
+
 import unittest
 from unittest.mock import MagicMock
 import pickle
