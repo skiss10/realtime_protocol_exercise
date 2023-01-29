@@ -4,18 +4,10 @@ import uuid
 import random
 import pickle
 import logging
+from utils.message import Message
 from utils.checksum import calculate_checksum
 import constants
 import time
-
-class Message:
-    """
-    Define a message object to be sent over the socket
-    """
-    def __init__(self, name, data, client_id):
-        self.name = name
-        self.data = data
-        self.client_id = client_id
 
 def compare_stream_hash(uint32_numbers, incoming_message): #TODO, make test to ensure both are unserialzied list of uint32
     """
