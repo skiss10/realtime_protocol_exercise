@@ -1,15 +1,17 @@
 import unittest
-import mock
+from unittest.mock import MagicMock
 import pickle
 from client import Message, message_handler, format_greeting
 
 class TestClient(unittest.TestCase):
     #Test to ensure stream_payload message append string to list
     def test_message_handler(self):
+        # Create a MagicMock object
+        mock_socket = MagicMock()
+
         uint32_numbers = []
-        client_socket = mock.Mock()
         incoming_message = Message("stream_payload", '123456', None)
-        message_handler(client_socket, incoming_message, uint32_numbers)
+        message_handler(mock_socket, incoming_message, uint32_numbers)
         self.assertEqual(uint32_numbers, ['123456'])
 
     #test for format_greeting function
