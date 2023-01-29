@@ -1,0 +1,77 @@
+[01-29 13:35:12] INFO: ===== Server - starting server-01 =====
+[01-29 13:35:12] INFO: Listening on localhost:{12335} ...
+[01-29 13:35:15] INFO: ===== Client - starting bf7ccf53-aa67-48fa-a893-6b9e529c0240 =====
+[01-29 13:35:15] INFO: Client - connecting to server...
+[01-29 13:35:15] INFO: Client - requesting sequence of length: 9
+[01-29 13:35:15] INFO: Client - sending greeting message
+[01-29 13:35:15] INFO: Server - Connection on: ('127.0.0.1', 50216)
+[01-29 13:35:15] INFO: Server - message recieved of type: greeting
+[01-29 13:35:15] INFO: Server - sequence length requested: 9
+[01-29 13:35:15] INFO: Server - list of uint32 numbers: [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03', b'\x00\x00\x00\x04', b'\x00\x00\x00\x05', b'\x00\x00\x00\x06', b'\x00\x00\x00\x07', b'\x00\x00\x00\x08', b'\x00\x00\x00\t']
+[01-29 13:35:15] INFO: Server - sending uint32 numbers to client bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:15] INFO: Server - Sending: b'\x00\x00\x00\x01' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:15] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:16] INFO: Server - Sending: b'\x00\x00\x00\x02' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:16] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:17] INFO: Server - Sending: b'\x00\x00\x00\x03' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:17] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:17] INFO: ===== Client - starting a7b210b4-73ee-4620-bc12-4e493641411c =====
+[01-29 13:35:17] INFO: Client - connecting to server...
+[01-29 13:35:17] INFO: Server - Connection on: ('127.0.0.1', 50217)
+[01-29 13:35:17] INFO: Client - requesting sequence of length: 10
+[01-29 13:35:17] INFO: Client - sending greeting message
+[01-29 13:35:17] INFO: Server - message recieved of type: greeting
+[01-29 13:35:17] INFO: Server - sequence length requested: 10
+[01-29 13:35:17] INFO: Server - list of uint32 numbers: [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03', b'\x00\x00\x00\x04', b'\x00\x00\x00\x05', b'\x00\x00\x00\x06', b'\x00\x00\x00\x07', b'\x00\x00\x00\x08', b'\x00\x00\x00\t', b'\x00\x00\x00\n']
+[01-29 13:35:17] INFO: Server - sending uint32 numbers to client a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:17] INFO: Server - Sending: b'\x00\x00\x00\x01' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:17] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:18] INFO: Server - Sending: b'\x00\x00\x00\x04' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:18] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:18] INFO: Server - Sending: b'\x00\x00\x00\x02' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:18] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:19] INFO: Server - Sending: b'\x00\x00\x00\x05' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:19] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:19] INFO: Server - Sending: b'\x00\x00\x00\x03' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:19] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:20] INFO: Server - Sending: b'\x00\x00\x00\x06' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:20] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:20] INFO: Server - Sending: b'\x00\x00\x00\x04' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:20] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:21] INFO: Server - Sending: b'\x00\x00\x00\x07' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:21] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:21] INFO: Server - Sending: b'\x00\x00\x00\x05' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:21] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:22] INFO: Server - Sending: b'\x00\x00\x00\x08' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:22] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:22] INFO: Server - Sending: b'\x00\x00\x00\x06' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:22] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:23] INFO: Server - Sending: b'\x00\x00\x00\t' to bf7ccf53-aa67-48fa-a893-6b9e529c0240
+[01-29 13:35:23] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:23] INFO: Server - Sending: b'\x00\x00\x00\x07' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:23] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:24] INFO: Server - calculated checksum: aa1adf7c125ca9b03ad03e0545400f90
+[01-29 13:35:24] INFO: Server - sending checksum payload to client
+[01-29 13:35:24] INFO: Client - message type recieved: checksum
+[01-29 13:35:24] INFO: Client - uint32 numbers recieved from server are [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03', b'\x00\x00\x00\x04', b'\x00\x00\x00\x05', b'\x00\x00\x00\x06', b'\x00\x00\x00\x07', b'\x00\x00\x00\x08', b'\x00\x00\x00\t']
+[01-29 13:35:24] INFO: Client - checksum recieved from server: aa1adf7c125ca9b03ad03e0545400f90
+[01-29 13:35:24] INFO: Client - calculated checksum from client: aa1adf7c125ca9b03ad03e0545400f90
+[01-29 13:35:24] INFO: Client - PASS - Checksums from client and Server are the same
+[01-29 13:35:24] INFO: Client - closing connection
+[01-29 13:35:24] INFO: Client - the client socket for bf7ccf53-aa67-48fa-a893-6b9e529c0240 has been closed.
+[01-29 13:35:24] INFO: Server - Sending: b'\x00\x00\x00\x08' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:24] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:25] INFO: Server - Sending: b'\x00\x00\x00\t' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:25] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:26] INFO: Server - Sending: b'\x00\x00\x00\n' to a7b210b4-73ee-4620-bc12-4e493641411c
+[01-29 13:35:26] INFO: Client - message type recieved: stream_payload
+[01-29 13:35:27] INFO: Server - calculated checksum: 084c91b4025aec2586f66294465447c4
+[01-29 13:35:27] INFO: Server - sending checksum payload to client
+[01-29 13:35:27] INFO: Client - message type recieved: checksum
+[01-29 13:35:27] INFO: Client - uint32 numbers recieved from server are [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03', b'\x00\x00\x00\x04', b'\x00\x00\x00\x05', b'\x00\x00\x00\x06', b'\x00\x00\x00\x07', b'\x00\x00\x00\x08', b'\x00\x00\x00\t', b'\x00\x00\x00\n']
+[01-29 13:35:27] INFO: Client - checksum recieved from server: 084c91b4025aec2586f66294465447c4
+[01-29 13:35:27] INFO: Client - calculated checksum from client: 084c91b4025aec2586f66294465447c4
+[01-29 13:35:27] INFO: Client - PASS - Checksums from client and Server are the same
+[01-29 13:35:27] INFO: Client - closing connection
+[01-29 13:35:27] INFO: Client - the client socket for a7b210b4-73ee-4620-bc12-4e493641411c has been closed.
+[01-29 13:35:35] INFO: Server - the server has been stopped
