@@ -33,7 +33,6 @@ def compare_stream_hash(uint32_numbers, incoming_message): #TODO, make test to e
     else:
         logging.info("Client - FAIL - Checksums from client and Server are not the same")
 
-
 def message_handler(client_socket, incoming_message, uint32_numbers):
     """
     Handle inbound data from server
@@ -51,7 +50,7 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
     else:
         logging.info("Client - message_handler recieved unknown message name type. Discarding message...")
 
-def format_greeting(sequence_length, client_id):
+def format_greeting(sequence_length, client_id): #TODO, test to ensure serialized message has expected format.
     """
     Function to format greeting message from client to server
     """
@@ -67,7 +66,7 @@ def format_greeting(sequence_length, client_id):
     return serialized_message
 
 
-def connect_to_server(host_ip, port):
+def connect_to_server(host_ip, port): #TODO, test to ensure good connection on given port and host_ip
     """
     Initiate server connection
     """
