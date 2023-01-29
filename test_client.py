@@ -1,8 +1,7 @@
 import unittest
 import mock
 import pickle
-from utils.checksum import calculate_checksum
-from client import Message, compare_stream_hash, message_handler, format_greeting, connect_to_server
+from client import Message, message_handler, format_greeting
 
 class TestClient(unittest.TestCase):
     #Test to ensure stream_payload message append string to list
