@@ -4,7 +4,7 @@ import pickle
 from client import Message, message_handler, format_greeting
 
 class TestClient(unittest.TestCase):
-    #Test to ensure stream_payload message append string to list
+    #Test to ensure stream_payload messages are appending incoming string to list
     def test_message_handler(self):
         # Create a MagicMock object
         mock_socket = MagicMock()
