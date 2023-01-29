@@ -32,7 +32,7 @@ def message_handler(incoming_message, client_socket, server_name):
         logging.info("Server - sending uint32 numbers to client %s" , incoming_message.client_id)
         for num in uint32_numbers:
             # create response message
-            message = Message("stream_payload", num, server_name) # TODO figure out client_id field
+            message = Message("stream_payload", num, server_name)
 
             #serialize message
             serialized_message = pickle.dumps(message)
