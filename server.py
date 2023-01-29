@@ -17,7 +17,7 @@ class Message:
         self.data = data
         self.client_id = client_id
 
-def message_handler(incoming_message, client_socket, client_address, server_name):
+def message_handler(incoming_message, client_socket, server_name):
     """
     Handle incoming messages
     """
@@ -29,7 +29,7 @@ def message_handler(incoming_message, client_socket, client_address, server_name
         logging.info("Server - list of uint32 numbers: %s", uint32_numbers)
 
         # Send each uint32
-        logging.info("Server - sending uint32 numbers to client %s" , client_address)
+        logging.info("Server - sending uint32 numbers to client %s" , incoming_message.client_id)
         for num in uint32_numbers:
             # create response message
             message = Message("stream_payload", num, server_name) # TODO figure out client_id field
@@ -38,7 +38,7 @@ def message_handler(incoming_message, client_socket, client_address, server_name
             serialized_message = pickle.dumps(message)
             
             # send stream payload message
-            logging.info("Server - Sending: " + str(num) + " to " + str(client_address))
+            logging.info("Server - Sending: " + str(num) + " to " + str(incoming_message.client_id))
             client_socket.sendall(serialized_message)
             time.sleep(1)
 
@@ -68,7 +68,7 @@ def client_handler(client_socket, client_address, server_name):
 
     Input: client socket and client address
     """
-    logging.info("Server - Connection from: %s", client_address)
+    logging.info("Server - Connection on: %s", client_address)
 
     # receive data from the client
     serialized_message = client_socket.recv(1024) #write test for data format (num bytes and format)
@@ -78,7 +78,7 @@ def client_handler(client_socket, client_address, server_name):
     logging.info("Server - message recieved of type: %s", incoming_message.name)
 
     # handle message
-    message_handler(incoming_message, client_socket, client_address, server_name)
+    message_handler(incoming_message, client_socket, server_name)
 
 def start_server(port):
     """
