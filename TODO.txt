@@ -1,12 +1,9 @@
-1.5) Implement tests for existing server and client code
-
-2) Do we want to have a message formatter as part of utils? or to expand the message object?
+1.5) read This to implement heartbeats
 
 3) Create the state store abstraction class
 4) Iniate a local state store
-5) Start thinking about heartbeats
 
-6) Add a variable to constants.py to simulate various connection errors
+6) Add a variable to constants.py to simulate various connection types (SSE vs. Socket. vs. gRPC)
 
 
 
