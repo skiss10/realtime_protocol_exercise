@@ -58,7 +58,6 @@ def format_greeting(sequence_length, client_id):
     #return serialized message
     return serialized_message
 
-
 def connect_to_server(host_ip, port):
     """
     Initiate server connection
@@ -140,7 +139,6 @@ def main():
             print("The client socket has been closed.")
             logging.info("Client - the client socket for %s has been closed." % client_id)
             break
-
 
 if __name__ == '__main__':
     main()
