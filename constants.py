@@ -12,4 +12,4 @@ LOG_LEVEL = 'DEBUG'
 LOG_FILE_PATH = './app.log'
 
 # Set heartbeat interval in seconds
-HEARTBEAT_INTERVAL = 15
+HEARTBEAT_INTERVAL = 5
