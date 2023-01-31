@@ -7,14 +7,42 @@ import struct
 from _thread import start_new_thread
 from utils.message import Message
 from utils.checksum import calculate_checksum
-import constants
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
+
+def send_heartbeats(incoming_message, client_socket, server_name):
+    """
+    Send heartbeats over client_socket
+    """
+    while True: #TODO figure out how to not get stuck in this loop
+        try:
+            server_timestamp = str(time.time())
+            heartbeat = Message("hearbeat", server_timestamp, server_name)
+
+            #serialize message
+            serialized_heartbeat = pickle.dumps(heartbeat)
+
+            # send stream payload message
+            logging.info("Server - Sending heartbeat to client: %s" % incoming_message.client_id)
+            client_socket.sendall(serialized_heartbeat)
+            time.sleep(HEARTBEAT_INTERVAL)
+
+        except socket.error as err:
+            logging.info("Server - connection error: {}".format(err))
+            logging.info("Server - stopping hearbeats: {}".format(err))
+            break
+
+
+
 
 def message_handler(incoming_message, client_socket, server_name):
     """
     Handle incoming messages
     """
     if incoming_message.name == "greeting":
-    # make incrementing uint34 list of messages
+        # # initiate heartbeats from server to client
+        # send_heartbeats(incoming_message, client_socket, server_name)
+
+        # make incrementing uint34 list of messages
         sequence_length = incoming_message.data
         logging.info("Server - sequence length requested: %s", sequence_length)
         uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
@@ -99,8 +127,8 @@ def main():
 
     # Configure logging
     logging.basicConfig(
-        level=constants.LOG_LEVEL,
-        filename=constants.LOG_FILE_PATH,
+        level=LOG_LEVEL,
+        filename=LOG_FILE_PATH,
         format='[%(asctime)s] %(levelname)s: %(message)s',
         datefmt='%m-%d %H:%M:%S'
         )
