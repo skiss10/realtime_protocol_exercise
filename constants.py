@@ -10,3 +10,6 @@ LOG_LEVEL = 'DEBUG'
 
 # This variable is a global variable for the path of the log file 
 LOG_FILE_PATH = './app.log'
+
+# Set heartbeat interval in seconds
+HEARTBEAT_INTERVAL = 15
