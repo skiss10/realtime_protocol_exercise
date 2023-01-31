@@ -76,13 +76,6 @@ async def message_handler(incoming_message, client_socket, server_name):
         asyncio.create_task(send_heartbeats(incoming_message, client_socket, server_name))
         asyncio.create_task(send_payload(incoming_message, client_socket, server_name))
 
-
-
-    # # close the connection
-    # logging.info("Server - closing connection")
-    # client_socket.close()
-    # logging.info("Server - connection closed")
-
 async def client_handler(client_socket, client_address, server_name):
     """
     client_thread handles all logic needed on a per
