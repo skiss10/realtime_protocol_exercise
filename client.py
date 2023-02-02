@@ -4,10 +4,11 @@ import uuid
 import random
 import pickle
 import logging
+import time
+import constants
+
 from utils.message import Message
 from utils.checksum import calculate_checksum
-import constants
-import time
 
 # generate a random uuid client identifier
 CLIENT_ID = str(uuid.uuid4())
@@ -44,7 +45,7 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
         client_socket.close()
 
     elif incoming_message.name == "heartbeat":
-        logging.info("[%s] Client - recieved heartbeat from server %s", CLIENT_ID, incoming_message.client_id)
+        logging.info("[%s] Client - recieved heartbeat from server %s", CLIENT_ID, incoming_message.sender_id)
 
     else:
         logging.info("[%s] Client - message_handler recieved unknown message name type. Discarding message...", CLIENT_ID)

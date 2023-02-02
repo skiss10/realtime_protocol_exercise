@@ -53,7 +53,7 @@ async def send_sequence(incoming_message, client_socket, server_name):
     logging.info("[%s] Server - list of uint32 numbers: %s", SERVER_NAME, uint32_numbers)
 
     # Send each uint32
-    logging.info("[%s] Server - sending uint32 numbers to client %s" , SERVER_NAME, incoming_message.client_id)
+    logging.info("[%s] Server - sending uint32 numbers to client %s" , SERVER_NAME, incoming_message.sender_id)
     for num in uint32_numbers:
 
         # create a single sequence message
@@ -63,7 +63,7 @@ async def send_sequence(incoming_message, client_socket, server_name):
         serialized_message = pickle.dumps(message)
 
         # send sequence message
-        logging.info("[%s] Server - Sending: %s to %s", SERVER_NAME, num, incoming_message.client_id)
+        logging.info("[%s] Server - Sending: %s to %s", SERVER_NAME, num, incoming_message.sender_id)
         client_socket.sendall(serialized_message)
 
         # wait for 1 second before sending the next number
