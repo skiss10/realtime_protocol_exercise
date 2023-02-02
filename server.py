@@ -24,13 +24,13 @@ async def send_heartbeats(client_socket, server_name):
             serialized_heartbeat = pickle.dumps(heartbeat)
 
             # send stream payload message
-            logging.info("Server - Sending heartbeat to client: %s" % client_socket)
+            logging.info("Server - Sending heartbeat to client: %s", client_socket)
             client_socket.sendall(serialized_heartbeat)
             await asyncio.sleep(HEARTBEAT_INTERVAL)
 
         except socket.error as err:
-            logging.info("Server - connection error: {}".format(err))
-            logging.info("Server - stopping hearbeats to %s" % client_socket)
+            logging.info("Server - connection error: %s", err)
+            logging.info("Server - stopping hearbeats to %s", client_socket)
             break
 
 async def send_payload(incoming_message, client_socket, server_name):
@@ -50,7 +50,7 @@ async def send_payload(incoming_message, client_socket, server_name):
         serialized_message = pickle.dumps(message)
 
         # send stream payload message
-        logging.info("Server - Sending: " + str(num) + " to " + str(incoming_message.client_id))
+        logging.info("Server - Sending: %s to %s", num, incoming_message.client_id)
         client_socket.sendall(serialized_message)
         await asyncio.sleep(1)
 
@@ -116,8 +116,8 @@ def start_server(port):
     return server_socket
 
 async def run_client_handler(client_socket, client_address, server_name):
-    logging.debug("Server - starting client handler for %s" % client_socket)
-    logging.debug("Server - Starting to send heartbeats to %s" % client_socket) 
+    logging.debug("Server - starting client handler for %s", client_socket)
+    logging.debug("Server - Starting to send heartbeats to %s", client_socket) 
     await asyncio.gather(client_handler(client_socket, client_address, server_name), send_heartbeats(client_socket, server_name))
 
 def add_new_client(client_socket, client_address, server_name):
@@ -134,7 +134,7 @@ async def main():
         format='[%(asctime)s] %(levelname)s: %(message)s',
         datefmt='%m-%d %H:%M:%S'
         )
-    logging.info("===== Server - starting %s =====" % server_name)
+    logging.info("===== Server - starting %s =====", server_name)
 
     # get the port number
     port = int(sys.argv[1])
@@ -146,7 +146,7 @@ async def main():
         while True:
             # establish a connection
             client_socket, client_address = server_socket.accept()
-            logging.info("Server - incoming client socket %s" % client_socket)
+            logging.info("Server - incoming client socket %s", client_socket)
 
             # Start a new thread for each client
             start_new_thread(add_new_client, (client_socket, client_address, server_name))

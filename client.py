@@ -13,12 +13,12 @@ def compare_stream_hash(uint32_numbers, incoming_message): #TODO, make test to e
     """
     Compare local and recieved hash of uint32 sequence
     """
-    logging.info("Client - uint32 numbers recieved from server are %s" % uint32_numbers)
+    logging.info("Client - uint32 numbers recieved from server are %s", uint32_numbers)
     # compare checksums
     server_checksum = incoming_message.data
     client_checksum = calculate_checksum(uint32_numbers)
-    logging.info("Client - checksum recieved from server: %s" % server_checksum)
-    logging.info("Client - calculated checksum from client: %s" % client_checksum)
+    logging.info("Client - checksum recieved from server: %s", server_checksum)
+    logging.info("Client - calculated checksum from client: %s", client_checksum)
 
     if server_checksum == client_checksum:
         logging.info("Client - PASS - Checksums from client and Server are the same")
@@ -79,7 +79,7 @@ def connect_to_server(host_ip, port):
             connected = True
 
         except socket.error as err:
-            logging.info("Client - connection error: {}".format(err))
+            logging.info("Client - connection error: %s", err)
             logging.info("Client - retrying connection in 15 seconds...")
             time.sleep(15)
 
@@ -100,7 +100,7 @@ def main():
         format='[%(asctime)s] %(levelname)s: %(message)s',
         datefmt='%m-%d %H:%M:%S'
         )
-    logging.info("===== Client - starting %s =====" % client_id)
+    logging.info("===== Client - starting %s =====", client_id)
 
     # get the port number and number of messages from command line
     port = int(sys.argv[1]) #TODO add assert here somewhere
@@ -137,7 +137,7 @@ def main():
         except OSError:
             # The socket is closed if a socket.error is raised
             print("The client socket has been closed.")
-            logging.info("Client - the client socket for %s has been closed." % client_id)
+            logging.info("Client - the client socket for %s has been closed.", client_id)
             break
 
 if __name__ == '__main__':
