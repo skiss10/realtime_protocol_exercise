@@ -6,7 +6,7 @@ Date: 01/23/2023
 """
 
 # This variable is a global variable for controlling the logging level
-LOG_LEVEL = 'DEBUG'
+LOG_LEVEL = 'INFO'
 
 # This variable is a global variable for the path of the log file 
 LOG_FILE_PATH = './app.log'
