@@ -7,14 +7,14 @@ from constants import LOG_LEVEL, LOG_FILE_PATH
 
 async def heartbeat(connection):
     while True:
-        logging.info("heartbeat for connection %s" % connection)
+        logging.info("heartbeat for connection %s", connection)
         await asyncio.sleep(1)
 
 async def send_payload(connection):
     i = 0
     while True:
         i += 1
-        logging.info("payload %s for connection %s" % (i , connection))
+        logging.info("payload %s for connection %s", i , connection)
         await asyncio.sleep(1)
         if i == 8:
             break
