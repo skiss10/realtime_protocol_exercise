@@ -9,22 +9,25 @@ from utils.checksum import calculate_checksum
 import constants
 import time
 
+# generate a random uuid client identifier
+CLIENT_ID = str(uuid.uuid4())
+
 def compare_stream_hash(uint32_numbers, incoming_message): #TODO, make test to ensure both are unserialzied list of uint32
     """
     Compare local and recieved hash of uint32 sequence
     """
-    logging.info("Client - uint32 numbers recieved from server are %s", uint32_numbers)
+    logging.info("[%s] Client - uint32 numbers recieved from server are %s", CLIENT_ID, uint32_numbers)
     # compare checksums
     server_checksum = incoming_message.data
     client_checksum = calculate_checksum(uint32_numbers)
-    logging.info("Client - checksum recieved from server: %s", server_checksum)
-    logging.info("Client - calculated checksum from client: %s", client_checksum)
+    logging.info("[%s] Client - checksum recieved from server: %s", CLIENT_ID, server_checksum)
+    logging.info("[%s] Client - calculated checksum from client: %s", CLIENT_ID, client_checksum)
 
     if server_checksum == client_checksum:
-        logging.info("Client - PASS - Checksums from client and Server are the same")
+        logging.info("[%s] Client - PASS - Checksums from client and Server are the same", CLIENT_ID)
 
     else:
-        logging.info("Client - FAIL - Checksums from client and Server are not the same")
+        logging.info("[%s] Client - FAIL - Checksums from client and Server are not the same", CLIENT_ID)
 
 def message_handler(client_socket, incoming_message, uint32_numbers):
     """
@@ -37,11 +40,14 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
         compare_stream_hash(uint32_numbers, incoming_message)
 
         # close the connection
-        logging.info("Client - closing connection")
+        logging.info("[%s] Client - closing connection", CLIENT_ID)
         client_socket.close()
 
+    elif incoming_message.name == "heartbeat":
+        logging.info("[%s] Client - recieved heartbeat from server %s", CLIENT_ID, incoming_message.client_id)
+
     else:
-        logging.info("Client - message_handler recieved unknown message name type. Discarding message...")
+        logging.info("[%s] Client - message_handler recieved unknown message name type. Discarding message...", CLIENT_ID)
 
 def format_greeting(sequence_length, client_id):
     """
@@ -50,7 +56,7 @@ def format_greeting(sequence_length, client_id):
 
     # format introduction message
     message = Message("greeting", sequence_length, client_id)
-    logging.info("Client - requesting sequence of length: %s", sequence_length)
+    logging.info("[%s] Client - requesting sequence of length: %s", CLIENT_ID, sequence_length)
 
     # serialize message
     serialized_message = pickle.dumps(message)
@@ -72,15 +78,15 @@ def connect_to_server(host_ip, port):
     while not connected:
         try:
             # connect to the server
-            logging.info("Client - connecting to server...")
+            logging.info("[%s] Client - connecting to server...", CLIENT_ID)
             client_socket.connect((host_ip, port))
 
             # set the connected flag to True
             connected = True
 
         except socket.error as err:
-            logging.info("Client - connection error: %s", err)
-            logging.info("Client - retrying connection in 15 seconds...")
+            logging.info("[%s] Client - connection error: %s", CLIENT_ID, err)
+            logging.info("[%s] Client - retrying connection in 15 seconds...", CLIENT_ID)
             time.sleep(15)
 
     # return connected socket
@@ -91,7 +97,7 @@ def main():
     Main for client.py
     """
     # generate a random uuid client identifier
-    client_id = str(uuid.uuid4())
+    client_id = CLIENT_ID
 
     # Configure logging
     logging.basicConfig(
@@ -119,7 +125,7 @@ def main():
     serialized_greeting = format_greeting(sequence_length, client_id)
 
     # send a message to the server
-    logging.info("Client - sending greeting message")
+    logging.info("[%s] Client - sending greeting message", CLIENT_ID)
     client_socket.sendall(serialized_greeting)
 
     while True:
@@ -129,7 +135,7 @@ def main():
 
             # unserialize message
             incoming_message = pickle.loads(serialized_message)
-            logging.info("Client - message type recieved: %s", incoming_message.name)
+            logging.info("[%s] Client - message type recieved: %s", CLIENT_ID, incoming_message.name)
 
             # send to incoming message handler
             message_handler(client_socket, incoming_message, uint32_numbers)
@@ -137,7 +143,7 @@ def main():
         except OSError:
             # The socket is closed if a socket.error is raised
             print("The client socket has been closed.")
-            logging.info("Client - the client socket for %s has been closed.", client_id)
+            logging.info("[%s] Client - the socket has been closed.", CLIENT_ID)
             break
 
 if __name__ == '__main__':
