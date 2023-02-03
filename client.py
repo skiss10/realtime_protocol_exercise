@@ -6,6 +6,7 @@ import pickle
 import logging
 import time
 import constants
+import asyncio
 
 from utils.message import Message
 from utils.checksum import calculate_checksum
@@ -50,6 +51,28 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
     else:
         logging.info("[%s] Client - message_handler recieved unknown message name type. Discarding message...", CLIENT_ID)
 
+def server_handler(client_socket, uint32_numbers):
+        """
+        Handle Server IO
+        """
+        while True:
+            try:
+                # perform socket I/O operations
+                serialized_message = client_socket.recv(1024)
+
+                # unserialize message
+                incoming_message = pickle.loads(serialized_message)
+                logging.info("[%s] Client - message type recieved: %s", CLIENT_ID, incoming_message.name)
+
+                # send to incoming message handler
+                message_handler(client_socket, incoming_message, uint32_numbers)
+
+            except OSError:
+                # The socket is closed if a socket.error is raised
+                print("The client socket has been closed.")
+                logging.info("[%s] Client - the socket has been closed.", CLIENT_ID)
+                break
+
 def format_greeting(sequence_length, client_id):
     """
     Function to format greeting message from client to server
@@ -79,7 +102,7 @@ def connect_to_server(host_ip, port):
     while not connected:
         try:
             # connect to the server
-            logging.info("[%s] Client - connecting to server...", CLIENT_ID)
+            logging.info("[%s] Client - attempting to connect to server...", CLIENT_ID)
             client_socket.connect((host_ip, port))
 
             # set the connected flag to True
@@ -90,7 +113,6 @@ def connect_to_server(host_ip, port):
             logging.info("[%s] Client - retrying connection in 15 seconds...", CLIENT_ID)
             time.sleep(15)
 
-    # return connected socket
     return client_socket
 
 def main():
@@ -129,23 +151,8 @@ def main():
     logging.info("[%s] Client - sending greeting message", CLIENT_ID)
     client_socket.sendall(serialized_greeting)
 
-    while True:
-        try:
-            # perform socket I/O operations
-            serialized_message = client_socket.recv(1024)
-
-            # unserialize message
-            incoming_message = pickle.loads(serialized_message)
-            logging.info("[%s] Client - message type recieved: %s", CLIENT_ID, incoming_message.name)
-
-            # send to incoming message handler
-            message_handler(client_socket, incoming_message, uint32_numbers)
-
-        except OSError:
-            # The socket is closed if a socket.error is raised
-            print("The client socket has been closed.")
-            logging.info("[%s] Client - the socket has been closed.", CLIENT_ID)
-            break
+    server_handler(client_socket, uint32_numbers)
 
 if __name__ == '__main__':
     main()
+    # asyncio.run(main())
