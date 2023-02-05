@@ -1,6 +1,16 @@
 
-3) Create the state store abstraction class
-4) Iniate a local state store
+1) Figure out how you want to simulate a disconnection 
+
+- Create a prompt for user input when running client.py asking if the user wants to simulate a disconnection. If yes, then for how long (in seconds)
+- Update client.py server_handler or message_handler to have logic that if discconect simulation is True, disconnect for that time (this will be just socket.disconnect, time.sleep. socket.reconnect) async somewhere here..
+- Update client.py to format a reconnection type message and logic to send 
+- Update server.py to handling incoming reconnection type requets (rejecting any older than 120 seconds)
+- 
+
+
+
+
+2) Set up async workflow for disconnections
 
 6) Add a variable to constants.py to simulate various connection types (SSE vs. Socket. vs. gRPC)
 
