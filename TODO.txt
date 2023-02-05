@@ -1,4 +1,3 @@
-1) Fix debugging so Client always shows client uuid and server always says which client is pointing towards
 
 3) Create the state store abstraction class
 4) Iniate a local state store

@@ -90,7 +90,7 @@ def format_greeting(sequence_length, client_id):
 
 def connect_to_server(host_ip, port):
     """
-    Initiate server connection
+    Connect to server and return the socket
     """
     # create a socket object
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -119,7 +119,7 @@ def main():
     """
     Main for client.py
     """
-    # generate a random uuid client identifier
+    # define client id
     client_id = CLIENT_ID
 
     # Configure logging
@@ -132,7 +132,8 @@ def main():
     logging.info("===== Client - starting %s =====", client_id)
 
     # get the port number and number of messages from command line
-    port = int(sys.argv[1]) #TODO add assert here somewhere
+    #TODO add assert here somewhere
+    port = int(sys.argv[1])
     sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
 
     # local sequence store
