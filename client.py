@@ -26,7 +26,7 @@ def compare_stream_hash(uint32_numbers, incoming_message): #TODO, make test to e
     logging.info("[%s] Client - Message - calculated checksum from client: %s", CLIENT_ID, client_checksum)
 
     if server_checksum == client_checksum:
-        logging.info("[%s] Client - PASS - Checksums from client and Server are the same", CLIENT_ID)
+        logging.info("[%s] Client - Checksum - [PASS] Checksums from client and Server are the same", CLIENT_ID)
 
     else:
         logging.info("[%s] Client - FAIL - Checksums from client and Server are not the same", CLIENT_ID)
@@ -70,7 +70,7 @@ def server_handler(client_socket, uint32_numbers):
             except OSError:
                 # The socket is closed if a socket.error is raised
                 print("The client socket has been closed.")
-                logging.info("[%s] Client - the socket has been closed.", CLIENT_ID)
+                logging.info("[%s] Client - Socket - the socket has been closed.", CLIENT_ID)
                 break
 
 def format_greeting(sequence_length, client_id):

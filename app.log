@@ -1,0 +1,42 @@
+[02-05 04:35:44] INFO: ===== Server - starting 57b72875-f15e-4d5b-80d8-0b1680c37404 =====
+[02-05 04:35:44] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Socket - Listening on localhost:{12333} ...
+[02-05 04:35:46] INFO: ===== Client - starting b824dfe6-42e2-40aa-a438-2356ef12255d =====
+[02-05 04:35:46] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Socket - attempting to connect to server...
+[02-05 04:35:46] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - requesting sequence of length: 3
+[02-05 04:35:46] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - sending greeting message
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Socket - incoming client socket <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333), raddr=('127.0.0.1', 61367)>
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Storage - instantiating new session store for <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333), raddr=('127.0.0.1', 61367)>
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Socket - Connection on: ('127.0.0.1', 61367)
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Messages - message recieved of type: greeting
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Storage - stored client_id: b824dfe6-42e2-40aa-a438-2356ef12255d
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Storage - stored client_id to socket info b824dfe6-42e2-40aa-a438-2356ef12255d : <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333), raddr=('127.0.0.1', 61367)>
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Messages - sequence length requested: 3
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Storage - stored requested sequence_length: 3
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Messages - list of uint32 numbers: [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03']
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Storage - stored uint32 numbers: [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03']
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Messages - sending uint32 numbers to client b824dfe6-42e2-40aa-a438-2356ef12255d
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Sending: b'\x00\x00\x00\x01' to b824dfe6-42e2-40aa-a438-2356ef12255d
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Storage - has stored: {'client_id': 'b824dfe6-42e2-40aa-a438-2356ef12255d', 'b824dfe6-42e2-40aa-a438-2356ef12255d': <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333), raddr=('127.0.0.1', 61367)>, 'sequence_length': 3, 'uint32 numbers': [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03'], 'queued': [b'\x00\x00\x00\x02', b'\x00\x00\x00\x03'], 'sent': [b'\x00\x00\x00\x01']}
+[02-05 04:35:46] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - message type recieved: stream_payload
+[02-05 04:35:46] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Heartbeat - Sending heartbeat to client: <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333), raddr=('127.0.0.1', 61367)>
+[02-05 04:35:46] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - message type recieved: heartbeat
+[02-05 04:35:46] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Heartbeat - recieved heartbeat from server 57b72875-f15e-4d5b-80d8-0b1680c37404
+[02-05 04:35:47] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Sending: b'\x00\x00\x00\x02' to b824dfe6-42e2-40aa-a438-2356ef12255d
+[02-05 04:35:47] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Storage - has stored: {'client_id': 'b824dfe6-42e2-40aa-a438-2356ef12255d', 'b824dfe6-42e2-40aa-a438-2356ef12255d': <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333), raddr=('127.0.0.1', 61367)>, 'sequence_length': 3, 'uint32 numbers': [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03'], 'queued': [b'\x00\x00\x00\x03'], 'sent': [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02']}
+[02-05 04:35:47] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - message type recieved: stream_payload
+[02-05 04:35:48] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Sending: b'\x00\x00\x00\x03' to b824dfe6-42e2-40aa-a438-2356ef12255d
+[02-05 04:35:48] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Storage - has stored: {'client_id': 'b824dfe6-42e2-40aa-a438-2356ef12255d', 'b824dfe6-42e2-40aa-a438-2356ef12255d': <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333), raddr=('127.0.0.1', 61367)>, 'sequence_length': 3, 'uint32 numbers': [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03'], 'queued': [], 'sent': [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03']}
+[02-05 04:35:48] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - message type recieved: stream_payload
+[02-05 04:35:49] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Messages - calculated checksum: fac8419ce652b86ec9531ddbc356a272
+[02-05 04:35:49] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Messages - sending checksum payload to client
+[02-05 04:35:49] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - message type recieved: checksum
+[02-05 04:35:49] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - uint32 numbers recieved from server are [b'\x00\x00\x00\x01', b'\x00\x00\x00\x02', b'\x00\x00\x00\x03']
+[02-05 04:35:49] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - checksum recieved from server: fac8419ce652b86ec9531ddbc356a272
+[02-05 04:35:49] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Message - calculated checksum from client: fac8419ce652b86ec9531ddbc356a272
+[02-05 04:35:49] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Checksum - [PASS] Checksums from client and Server are the same
+[02-05 04:35:49] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Socket - closing connection
+[02-05 04:35:49] INFO: [b824dfe6-42e2-40aa-a438-2356ef12255d] Client - Socket - the socket has been closed.
+[02-05 04:35:51] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Heartbeat - Sending heartbeat to client: <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333), raddr=('127.0.0.1', 61367)>
+[02-05 04:35:56] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Heartbeat - Sending heartbeat to client: <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333)>
+[02-05 04:35:56] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Socket - connection error: [Errno 32] Broken pipe
+[02-05 04:35:56] INFO: [57b72875-f15e-4d5b-80d8-0b1680c37404] Server - Socket - stopping hearbeats to <socket.socket fd=11, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 12333)>

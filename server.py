@@ -78,7 +78,9 @@ async def send_sequence(incoming_message, client_socket, server_name, session_st
     """
     # store incoming client_id
     session_storage.set("client_id", incoming_message.sender_id)
+    session_storage.set(incoming_message.sender_id, client_socket)
     logging.info("[%s] Server - Storage - stored client_id: %s", SERVER_NAME, incoming_message.sender_id)
+    logging.info("[%s] Server - Storage - stored client_id to socket info %s : %s", SERVER_NAME, incoming_message.sender_id, client_socket)
 
     # store requested sequence length
     sequence_length = incoming_message.data
@@ -116,7 +118,7 @@ async def send_sequence(incoming_message, client_socket, server_name, session_st
         session_storage.set("sent", numbers_sent)
         numbers_to_send = numbers_to_send[1:]
         session_storage.set("queued", numbers_to_send)
-        logging.info("[%s] Server - has stored: %s", SERVER_NAME, session_storage.store)
+        logging.info("[%s] Server - Storage - has stored: %s", SERVER_NAME, session_storage.store)
 
         # wait for 1 second before sending the next number
         await asyncio.sleep(1)
@@ -240,6 +242,7 @@ async def main():
 
             # start a client session store
             session_storage = InMemoryStore()
+            logging.info("[%s] Server - Storage - instantiating new session store for %s", SERVER_NAME, client_socket)
 
             # Start a new thread for each client
             start_new_thread(add_new_client, (client_socket, client_address, server_name, session_storage))
@@ -247,7 +250,7 @@ async def main():
     except KeyboardInterrupt:
         server_socket.close()
         print("The Server has been stopped and the server socket has been closed.")
-        logging.info("Server - the server has been stopped")
+        logging.info("[%s] Server - Function - the server has been stopped", SERVER_NAME)
 
 if __name__ == '__main__':
     asyncio.run(main())
