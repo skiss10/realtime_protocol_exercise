@@ -36,10 +36,11 @@ class InMemoryStore(AbstractSessionStore):
 
     def get(self, key):
         return self.store.get(key)
+    
     def set(self, key, value):
         self.store[key] = value
         logging.debug("[%s] Server - Storage - Setting InMemory data store %s:%s", SERVER_NAME, key, value)
-
+    
     def delete(self, key):
         if key in self.store:
             del self.store[key]
@@ -50,7 +51,7 @@ async def send_heartbeats(client_socket, server_name):
     """
 
     while True:
-        try:    
+        try:
             # timestamp and sign heartbeat
             server_timestamp = str(time.time())
             heartbeat = Message("heartbeat", server_timestamp, server_name)
@@ -58,7 +59,7 @@ async def send_heartbeats(client_socket, server_name):
             #serialize message
             serialized_heartbeat = pickle.dumps(heartbeat)
 
-            # send stream payload message
+            # send heartbeat payload message
             logging.info("[%s] Server - Heartbeat - Sending heartbeat to client: %s", SERVER_NAME, client_socket)
             client_socket.sendall(serialized_heartbeat)
             await asyncio.sleep(HEARTBEAT_INTERVAL)
@@ -74,6 +75,9 @@ async def send_sequence(incoming_message, client_socket, server_name, session_st
     """
     Send a sequence of messages every second with incrementing uint32 numbers as the payload.
     """
+    
+    #TODO: add logic to handle disconnections from client mid sequence send. 
+
     # store incoming client_id
     session_storage.set("client_id", incoming_message.sender_id)
     session_storage.set(incoming_message.sender_id, client_socket)
@@ -88,7 +92,7 @@ async def send_sequence(incoming_message, client_socket, server_name, session_st
 
     # Create an incrementing list of uint32 numbers
     uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
-    logging.info("[%s] Server - Messages - list of uint32 numbers: %s", SERVER_NAME, uint32_numbers)
+    logging.info("[%s] Server - System - Server created list of incrementing uint32 numbers: %s", SERVER_NAME, uint32_numbers)
 
     # store numbers
     session_storage.set("uint32 numbers", uint32_numbers)
@@ -146,6 +150,9 @@ async def message_handler(incoming_message, client_socket, server_name, session_
     if incoming_message.name == "reconnection":
         pass #TODO add functionality to handle client reconnection attempts
 
+    if incoming_message.name == "disconnection":
+        pass #TODO: Implement logic to handle disconnections from client gracefully
+
 async def client_handler(client_socket, client_address, server_name, session_storage):
     """
     Handle all logic needed on a per
@@ -195,7 +202,7 @@ async def run_client_handler(client_socket, client_address, server_name, session
     logging.debug("[%s] Server - Function - starting client handler for %s", SERVER_NAME, client_socket)
     logging.debug("[%s] Server - Heartbeat - Starting to send heartbeats to %s", SERVER_NAME, client_socket)
 
-    # Run parallel tasks for new client
+    # Run parallel tasks for new client conccurently
     await asyncio.gather(
         client_handler(client_socket, client_address, server_name, session_storage),
         send_heartbeats(client_socket, server_name)
