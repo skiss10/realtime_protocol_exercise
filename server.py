@@ -36,7 +36,6 @@ class InMemoryStore(AbstractSessionStore):
 
     def get(self, key):
         return self.store.get(key)
-
     def set(self, key, value):
         self.store[key] = value
         logging.debug("[%s] Server - Storage - Setting InMemory data store %s:%s", SERVER_NAME, key, value)
@@ -47,8 +46,7 @@ class InMemoryStore(AbstractSessionStore):
             logging.debug("[%s] Server - Storage - Deleting InMemory data store for %s", SERVER_NAME, key)
 
 async def send_heartbeats(client_socket, server_name):
-    """
-    Continuously send heartbeats to the client until the socket is torn down
+    """    Continuously send heartbeats to the client until the socket is torn down
     """
 
     while True:
@@ -232,6 +230,9 @@ async def main():
     # start the server
     server_socket = start_server(port)
 
+    # list of threads for each client
+    threads = []
+
     # continuosly listen for connection requests
     try:
         while True:
@@ -245,12 +246,14 @@ async def main():
             logging.info("[%s] Server - Storage - instantiating new session store for %s", SERVER_NAME, client_socket)
 
             # Start a new thread for each client
-            start_new_thread(add_new_client, (client_socket, client_address, server_name, session_storage))
+            thread_id = start_new_thread(add_new_client, (client_socket, client_address, server_name, session_storage))
+            threads.append(thread_id)
 
     except KeyboardInterrupt:
         server_socket.close()
-        print("The Server has been stopped and the server socket has been closed.")
+        print("The Server has been stopped and the server socket(s) has been closed.")
         logging.info("[%s] Server - Function - the server has been stopped", SERVER_NAME)
+        logging.info("[%s] Server - System - thread ids: %s", SERVER_NAME, str(threads))
 
 if __name__ == '__main__':
     asyncio.run(main())
