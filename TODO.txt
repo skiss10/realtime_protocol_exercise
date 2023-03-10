@@ -1,4 +1,6 @@
 
+0.5) Make the connection an OBJECT
+
 1) Figure out how you want to simulate a disconnection 
 
 - Create a prompt for user input when running client.py asking if the user wants to simulate a disconnection. If yes, then for how long (in seconds)
