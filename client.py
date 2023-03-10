@@ -6,7 +6,6 @@ import pickle
 import logging
 import time
 import constants
-import asyncio
 
 from utils.message import Message
 from utils.checksum import calculate_checksum
