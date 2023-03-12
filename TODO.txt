@@ -18,3 +18,30 @@ Implement greeting response from server to client with connection_id, perhaps se
 6) Add a variable to constants.py to simulate various connection types (SSE vs. Socket. vs. gRPC)
 
 
+7) Refactor client.py message_handler with a handler dictionary mapping:
+
+def message_handler(msg):
+    handlers = {
+        "hello": handle_hello,
+        "goodbye": handle_goodbye,
+        "ping": handle_ping,
+        # add more message types and their handlers here
+    }
+    handler = handlers.get(msg["type"], handle_unknown)
+    return handler(msg)
+
+def handle_hello(msg):
+    # handle the "hello" message type
+    pass
+
+def handle_goodbye(msg):
+    # handle the "goodbye" message type
+    pass
+
+def handle_ping(msg):
+    # handle the "ping" message type
+    pass
+
+def handle_unknown(msg):
+    # handle any unknown message types
+    pass
