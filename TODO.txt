@@ -9,6 +9,7 @@
 - Update server.py to handling incoming reconnection type requets (rejecting any older than 120 seconds)
 -
 
+1.2) Add seialization and deserialization to message object?
 
 2) Add a way for server.py to gracefully handle client disconnects and stop heartbeats / thread gracefully
 
