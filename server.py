@@ -194,7 +194,7 @@ def start_server(port):
 
     return server_socket
 
-async def run_client_handler(socket_to_client, server_name, session_storage):
+async def run_client_handler(socket_to_client, server_name):
     """
     Establish tastks to run for each client in parallel
     """
@@ -202,17 +202,21 @@ async def run_client_handler(socket_to_client, server_name, session_storage):
     logging.debug("[%s] Server - Function - starting client handler for %s", SERVER_NAME, socket_to_client)
     logging.debug("[%s] Server - Heartbeat - Starting to send heartbeats to %s", SERVER_NAME, socket_to_client)
 
+    # start a client session store
+    session_storage = InMemoryStore()
+    logging.info("[%s] Server - Storage - instantiating new session store for socket connection to peer %s", SERVER_NAME, socket_to_client.getpeername())
+
     # Run parallel tasks for new client conccurently
     await asyncio.gather(
         client_handler(socket_to_client, server_name, session_storage),
         send_heartbeats(socket_to_client, server_name)
         )
 
-def add_new_client(socket_to_client, server_name, session_storage):
+def add_new_client(socket_to_client, server_name):
     """
     Handle Client Asynchronously
     """
-    asyncio.run(run_client_handler(socket_to_client, server_name, session_storage))
+    asyncio.run(run_client_handler(socket_to_client, server_name))
 
 def main():
     """
@@ -248,12 +252,8 @@ def main():
             socket_to_client, _ = server_socket.accept()
             logging.info("[%s] Server - Socket - incoming client socket %s", SERVER_NAME, socket_to_client)
 
-            # start a client session store
-            session_storage = InMemoryStore()
-            logging.info("[%s] Server - Storage - instantiating new session store for socket connection to peer %s", SERVER_NAME, socket_to_client.getpeername())
-
             # Start a new thread for each client
-            thread_id = start_new_thread(add_new_client, (socket_to_client, server_name, session_storage))
+            thread_id = start_new_thread(add_new_client, (socket_to_client, server_name))
             threads.append(thread_id)
 
     except KeyboardInterrupt:
