@@ -22,7 +22,7 @@ def compare_stream_hash(uint32_numbers, incoming_message): #TODO, make test to e
     server_checksum = incoming_message.data
     client_checksum = calculate_checksum(uint32_numbers)
     logging.info("[%s] Client - Message - checksum recieved from server: %s", CLIENT_ID, server_checksum)
-    logging.info("[%s] Client - Message - calculated checksum from client: %s", CLIENT_ID, client_checksum)
+    logging.info("[%s] Client - Message - calculated checksum on client: %s", CLIENT_ID, client_checksum)
 
     if server_checksum == client_checksum:
         logging.info("[%s] Client - Checksum - [PASS] Checksums from client and Server are the same", CLIENT_ID)
@@ -30,7 +30,7 @@ def compare_stream_hash(uint32_numbers, incoming_message): #TODO, make test to e
     else:
         logging.info("[%s] Client - FAIL - Checksums from client and Server are not the same", CLIENT_ID)
 
-def message_handler(client_socket, incoming_message, uint32_numbers):
+def message_handler(socket_to_server, incoming_message, uint32_numbers):
     """
     Handle inbound data from server
     """
@@ -42,7 +42,7 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
 
         # close the connection
         logging.info("[%s] Client - Socket - closing connection", CLIENT_ID)
-        client_socket.close()
+        socket_to_server.close()
 
     elif incoming_message.name == "heartbeat":
         logging.info("[%s] Client - Heartbeat - recieved heartbeat from server %s", CLIENT_ID, incoming_message.sender_id)
@@ -50,21 +50,21 @@ def message_handler(client_socket, incoming_message, uint32_numbers):
     else:
         logging.info("[%s] Client - message_handler recieved unknown message name type. Discarding message...", CLIENT_ID)
 
-def server_handler(client_socket, uint32_numbers):
+def server_handler(socket_to_server, uint32_numbers):
         """
         Handle Server IO
         """
         while True:
             try:
                 # perform socket I/O operations
-                serialized_message = client_socket.recv(1024)
+                serialized_message = socket_to_server.recv(1024)
 
                 # unserialize message
                 incoming_message = pickle.loads(serialized_message)
                 logging.info("[%s] Client - Message - message type recieved: %s", CLIENT_ID, incoming_message.name)
 
                 # send to incoming message handler
-                message_handler(client_socket, incoming_message, uint32_numbers)
+                message_handler(socket_to_server, incoming_message, uint32_numbers)
 
             except OSError:
                 # The socket is closed if a socket.error is raised
@@ -92,7 +92,7 @@ def connect_to_socket(host_ip, port):
     Connect to server and return the socket
     """
     # create a socket object
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socket_to_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # flag to indicate if a connection has been established
     connected = False
@@ -102,9 +102,10 @@ def connect_to_socket(host_ip, port):
         try:
             # connect to the server
             logging.info("[%s] Client - Socket - attempting to connect to server...", CLIENT_ID)
-            client_socket.connect((host_ip, port))
+            socket_to_server.connect((host_ip, port))
 
             # set the connected flag to True
+            logging.info("[%s] Client - Socket - Connected to server via socket: %s", CLIENT_ID, socket_to_server)
             connected = True
 
         except socket.error as err:
@@ -112,7 +113,7 @@ def connect_to_socket(host_ip, port):
             logging.info("[%s] Client - Socket - retrying connection in 15 seconds...", CLIENT_ID)
             time.sleep(15)
 
-    return client_socket
+    return socket_to_server
 
 def main():
     """
@@ -142,16 +143,16 @@ def main():
     host_ip = 'localhost'
 
     # connect to server
-    client_socket = connect_to_socket(host_ip, port)
+    socket_to_server = connect_to_socket(host_ip, port)
 
     # create greeting message for server
     serialized_greeting = format_greeting(sequence_length, client_id)
 
     # send a message to the server
     logging.info("[%s] Client - Message - sending greeting message", CLIENT_ID)
-    client_socket.sendall(serialized_greeting)
+    socket_to_server.sendall(serialized_greeting)
 
-    server_handler(client_socket, uint32_numbers)
+    server_handler(socket_to_server, uint32_numbers)
 
 if __name__ == '__main__':
     main()
