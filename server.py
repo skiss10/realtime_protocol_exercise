@@ -214,7 +214,7 @@ def add_new_client(socket_to_client, server_name, session_storage):
     """
     asyncio.run(run_client_handler(socket_to_client, server_name, session_storage))
 
-async def main():
+def main():
     """
     Main
     """
@@ -263,4 +263,4 @@ async def main():
         logging.info("[%s] Server - System - thread ids: %s", SERVER_NAME, str(threads))
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
