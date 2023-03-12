@@ -1,5 +1,7 @@
 
-0.5) Make the connection an OBJECT
+0.5)  Implement these properties for the connection object: https://ably.com/docs/api/realtime-sdk/connection?lang=nodejs
+Implement methods to run upon initialization of Connection object (Setting raddr, etc.)
+Implement greeting response from server to client with connection_id, perhaps set this equal to the thread ID
 
 1) Figure out how you want to simulate a disconnection 
 
