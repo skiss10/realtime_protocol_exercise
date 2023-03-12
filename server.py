@@ -250,7 +250,7 @@ async def main():
 
             # start a client session store
             session_storage = InMemoryStore()
-            logging.info("[%s] Server - Storage - instantiating new session store for %s", SERVER_NAME, socket_to_client)
+            logging.info("[%s] Server - Storage - instantiating new session store for socket connection to peer %s", SERVER_NAME, socket_to_client.getpeername())
 
             # Start a new thread for each client
             thread_id = start_new_thread(add_new_client, (socket_to_client, server_name, session_storage))
