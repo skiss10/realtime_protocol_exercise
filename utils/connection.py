@@ -2,6 +2,10 @@
 Module to define a connection object
 """
 
+# TODO Implement these properties for the connection: https://ably.com/docs/api/realtime-sdk/connection?lang=nodejs
+
+# TODO: Implement methods to run upon initialization of Connection object  
+
 class Connection:
     """
     Define a Connection object
