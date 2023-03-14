@@ -46,7 +46,7 @@ class InMemoryStore(AbstractSessionStore):
             del self.store[key]
             logging.debug("[%s] Server - Storage - Deleting InMemory data store for %s", SERVER_NAME, key)
 
-async def send_heartbeats(socket_to_client, server_name):
+async def send_heartbeats(socket_to_client):
     """    Continuously send heartbeats to the client until the socket is torn down
     """
 
@@ -54,7 +54,7 @@ async def send_heartbeats(socket_to_client, server_name):
         try:
             # timestamp and sign heartbeat
             server_timestamp = str(time.time())
-            heartbeat = Message("heartbeat", server_timestamp, server_name)
+            heartbeat = Message("heartbeat", server_timestamp, SERVER_NAME)
 
             #serialize message
             serialized_heartbeat = pickle.dumps(heartbeat)
@@ -71,7 +71,7 @@ async def send_heartbeats(socket_to_client, server_name):
             logging.info("[%s] Server - Socket - stopping hearbeats to %s", SERVER_NAME, socket_to_client)
             break
 
-async def send_sequence(incoming_message, socket_to_client, server_name, session_storage):
+async def send_sequence(incoming_message, socket_to_client, session_storage):
     """
     Send a sequence of messages every second with incrementing uint32 numbers as the payload.
     """
@@ -106,7 +106,7 @@ async def send_sequence(incoming_message, socket_to_client, server_name, session
     for num in uint32_numbers:
 
         # create a single sequence message
-        message = Message("stream_payload", num, server_name)
+        message = Message("stream_payload", num, SERVER_NAME)
 
         #serialize the message
         serialized_message = pickle.dumps(message)
@@ -139,13 +139,13 @@ async def send_sequence(incoming_message, socket_to_client, server_name, session
     logging.info("[%s] Server - Messages - sending checksum payload to client %s", SERVER_NAME, incoming_message.sender_id)
     socket_to_client.sendall(serialized_message)
 
-async def message_handler(incoming_message, socket_to_client, server_name, session_storage):
+async def message_handler(incoming_message, socket_to_client, session_storage):
     """
     Handle incoming messages
     """
 
     if incoming_message.name == "greeting":
-        await send_sequence(incoming_message, socket_to_client, server_name, session_storage)
+        await send_sequence(incoming_message, socket_to_client, session_storage)
 
     if incoming_message.name == "reconnection":
         pass #TODO add functionality to handle client reconnection attempts
@@ -153,7 +153,7 @@ async def message_handler(incoming_message, socket_to_client, server_name, sessi
     if incoming_message.name == "disconnection":
         pass #TODO: Implement logic to handle disconnections from client gracefully
 
-async def client_handler(socket_to_client, server_name, session_storage):
+async def client_handler(socket_to_client, session_storage):
     """
     Handle all logic needed on a per
     client basis.
@@ -171,7 +171,7 @@ async def client_handler(socket_to_client, server_name, session_storage):
     logging.info("[%s] Server - Messages - message recieved of type: %s", SERVER_NAME, incoming_message.name)
 
     # handle incoming messages
-    await message_handler(incoming_message, socket_to_client, server_name, session_storage)
+    await message_handler(incoming_message, socket_to_client, session_storage)
 
 def start_server(port):
     """
@@ -194,7 +194,7 @@ def start_server(port):
 
     return server_socket
 
-async def run_client_handler(socket_to_client, server_name):
+async def run_client_handler(socket_to_client):
     """
     Establish tastks to run for each client in parallel
     """
@@ -208,15 +208,15 @@ async def run_client_handler(socket_to_client, server_name):
 
     # Run parallel tasks for new client conccurently
     await asyncio.gather(
-        client_handler(socket_to_client, server_name, session_storage),
-        send_heartbeats(socket_to_client, server_name)
+        client_handler(socket_to_client, session_storage),
+        send_heartbeats(socket_to_client)
         )
 
-def add_new_client(socket_to_client, server_name):
+def add_new_client(socket_to_client):
     """
     Handle Client Asynchronously
     """
-    asyncio.run(run_client_handler(socket_to_client, server_name))
+    asyncio.run(run_client_handler(socket_to_client))
 
 def main():
     """
@@ -253,7 +253,7 @@ def main():
             logging.info("[%s] Server - Socket - incoming client socket %s", SERVER_NAME, socket_to_client)
 
             # Start a new thread for each client
-            thread_id = start_new_thread(add_new_client, (socket_to_client, server_name))
+            thread_id = start_new_thread(add_new_client, (socket_to_client,))
             threads.append(thread_id)
 
     except KeyboardInterrupt:
