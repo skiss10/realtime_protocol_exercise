@@ -10,14 +10,14 @@ class Connection:
     """
     Define a Connection object
     """
-    def __init__(self, peer_socket, peer_address, local_hostname, session_storage):
+    def __init__(self, peer_socket, session_storage):
         """
         Initialize connection attributes
         """
         self.peer_socket = peer_socket
-        self.peer_address = peer_address
-        self.local_hostname = local_hostname
         self.session_storage = session_storage
+        self.peer_address = None
+        self.local_hostname = None
         self.connection_id = None
         self.remote_hostname = None
         self.state = None
@@ -25,6 +25,5 @@ class Connection:
 
     def detect_heartbeat(self):
         """
-        
+        test
         """
-        pass
