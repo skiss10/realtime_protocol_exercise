@@ -47,6 +47,16 @@ def message_handler(socket_to_server, incoming_message, uint32_numbers):
     elif incoming_message.name == "heartbeat":
         logging.info("[%s] Client - Heartbeat - recieved heartbeat from server %s", CLIENT_ID, incoming_message.sender_id)
 
+        # ack heartbeat
+        message = Message("heartbeat_ack", "", CLIENT_ID)
+
+        # serialize message
+        serialized_message = pickle.dumps(message)
+
+        # send a message to the server
+        logging.info("[%s] Client - Message - sending heartbeat_ack message to server %s", CLIENT_ID, incoming_message.sender_id)
+        socket_to_server.sendall(serialized_message)
+
     else:
         logging.info("[%s] Client - message_handler recieved unknown message name type. Discarding message...", CLIENT_ID)
 
