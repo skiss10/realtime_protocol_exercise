@@ -147,11 +147,17 @@ async def message_handler(incoming_message, socket_to_client, session_storage):
     if incoming_message.name == "greeting":
         await send_sequence(incoming_message, socket_to_client, session_storage)
 
-    if incoming_message.name == "reconnection":
+    elif incoming_message.name == "reconnection":
         pass #TODO add functionality to handle client reconnection attempts
 
-    if incoming_message.name == "disconnection":
+    elif incoming_message.name == "disconnection":
         pass #TODO: Implement logic to handle disconnections from client gracefully
+
+    elif incoming_message.name == "heartbeat_ack":
+        logging.info("[%s] Server - Heartbeat - Recieved hearbeat ack from client: %s", SERVER_NAME, incoming_message.sender_id)
+
+    else:
+        logging.info("[%s] Server - System - message_handler recieved unknown message name type. Discarding message...", SERVER_NAME)
 
 async def client_handler(socket_to_client, session_storage):
     """
@@ -162,16 +168,23 @@ async def client_handler(socket_to_client, session_storage):
     """
 
     logging.info("[%s] Server - Socket - Connection on: %s", SERVER_NAME, socket_to_client.getpeername())
+    while True:
+        try:
+            # receive data from the client
+            serialized_message = socket_to_client.recv(1024)
 
-    # receive data from the client
-    serialized_message = socket_to_client.recv(1024) #write test for data format (num bytes and format)
+            # unserialize message
+            incoming_message = pickle.loads(serialized_message)
+            logging.info("[%s] Server - Messages - message recieved of type: %s", SERVER_NAME, incoming_message.name)
 
-    # unserialize message
-    incoming_message = pickle.loads(serialized_message)
-    logging.info("[%s] Server - Messages - message recieved of type: %s", SERVER_NAME, incoming_message.name)
+            # handle incoming messages in a separate task
+            await message_handler(incoming_message, socket_to_client, session_storage)
 
-    # handle incoming messages
-    await message_handler(incoming_message, socket_to_client, session_storage)
+        except OSError:
+            # The socket is closed if a socket.error is raised
+            print("The socket has been closed.")
+            logging.info("[%s] Server - Socket - the socket has been closed.", SERVER_NAME)
+            break
 
 def start_server(port):
     """
@@ -255,6 +268,7 @@ def main():
             # Start a new thread for each client
             thread_id = start_new_thread(add_new_client, (socket_to_client,))
             threads.append(thread_id)
+            logging.info("[%s] Server - System - thread ids: %s", SERVER_NAME, str(threads))
 
     except KeyboardInterrupt:
         server_socket.close()
