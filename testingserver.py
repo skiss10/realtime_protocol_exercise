@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+
 from utils.exception_handler import exception_handler
 
 
@@ -16,9 +17,14 @@ def handle_client(conn, addr):
 @exception_handler
 def send_heartbeat(conn,addr):
     while True:
-        conn.send(b"Heartbeat")
-        print(f"Sent Heartbeat to {addr} at {time.time()}")
-        time.sleep(5)
+        try:
+            conn.send(b"Heartbeat")
+            print(f"Sent Heartbeat to {addr} at {time.time()}")
+            time.sleep(5)
+        except OSError:
+            print("Socket Broken. Closing Connection")
+            conn.close()
+            break
 
 @exception_handler
 def main():
@@ -39,7 +45,6 @@ def main():
             # spawn a new process to send heartbeats to the client
             heartbeat_thread = threading.Thread(target=send_heartbeat, args=(conn,addr))
             heartbeat_thread.start()
-            
-
+          
 if __name__ == "__main__":
     main()
