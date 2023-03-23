@@ -33,5 +33,5 @@ if __name__ == "__main__":
             client_thread.start()
 
             # spawn a new process to send heartbeats to the client
-            heartbeat_process = threading.Thread(target=send_heartbeat, args=(conn,addr))
-            heartbeat_process.start()
+            heartbeat_thread = threading.Thread(target=send_heartbeat, args=(conn,addr))
+            heartbeat_thread.start()
