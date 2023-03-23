@@ -35,7 +35,7 @@ def main():
         s.bind((HOST, PORT))
         s.listen(5)
         print("Server listening on port", PORT)
-        processes = []
+
         while True:
             conn, addr = s.accept()
             # handle each client in a separate thread
