@@ -1,7 +1,9 @@
 import socket
 import threading
 import time
+from utils.exception_handler import exception_handler
 
+@exception_handler
 def receive_message(conn):
     while True:
         data = conn.recv(1024)
@@ -9,13 +11,14 @@ def receive_message(conn):
             print(f"Received heartbeat at {time.time()}")
             conn.send(b"Heartbeat_ack")
 
-
+@exception_handler
 def send_message(conn):
     while True:
         message = input("Enter message to send: ")
         conn.send(message.encode('utf-8'))
 
-if __name__ == "__main__":
+@exception_handler
+def main():
     HOST = 'localhost'  # The server's hostname or IP address
     PORT = 12331  # The port used by the server
 
@@ -33,3 +36,6 @@ if __name__ == "__main__":
 
         heartbeat_thread.join()
         message_thread.join()
+
+if __name__ == "__main__":
+    main()

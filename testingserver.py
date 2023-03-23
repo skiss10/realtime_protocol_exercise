@@ -1,7 +1,10 @@
 import socket
 import threading
 import time
+from utils.exception_handler import exception_handler
 
+
+@exception_handler
 def handle_client(conn, addr):
     print(f"Connected by {addr}")
     while True:
@@ -9,15 +12,16 @@ def handle_client(conn, addr):
         if not data:
             break
         print(f"Received data from {addr}: {data.decode('utf-8')}")
-    conn.close()
 
+@exception_handler
 def send_heartbeat(conn,addr):
     while True:
         conn.send(b"Heartbeat")
         print(f"Sent Heartbeat to {addr} at {time.time()}")
         time.sleep(5)
 
-if __name__ == "__main__":
+@exception_handler
+def main():
     HOST = 'localhost'  # Symbolic name meaning all available interfaces
     PORT = 12331  # Arbitrary non-privileged port
 
@@ -35,3 +39,7 @@ if __name__ == "__main__":
             # spawn a new process to send heartbeats to the client
             heartbeat_thread = threading.Thread(target=send_heartbeat, args=(conn,addr))
             heartbeat_thread.start()
+            
+
+if __name__ == "__main__":
+    main()
