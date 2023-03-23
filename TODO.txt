@@ -1,10 +1,8 @@
-0.1) Implement graceful connection failures in testingclient.py and testingserver.py 
+1) Refactor testingclient to remove repeatative clode.
 
 0.5)  Implement these properties for the connection object: https://ably.com/docs/api/realtime-sdk/connection?lang=nodejs
 Implement methods to run upon initialization of Connection object (Setting raddr, etc.)
 Implement greeting response from server to client with connection_id, perhaps set this equal to the thread ID
-
-1) Figure out how you want to simulate a disconnection 
 
 - Create a prompt for user input when running client.py asking if the user wants to simulate a disconnection. If yes, then for how long (in seconds)
 - Update client.py server_handler or message_handler to have logic that if discconect simulation is True, disconnect for that time (this will be just socket.disconnect, time.sleep. socket.reconnect) async somewhere here..
