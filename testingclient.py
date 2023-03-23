@@ -1,11 +1,14 @@
 import socket
 import threading
+import time
 
-def receive_heartbeat(conn):
+def receive_message(conn):
     while True:
         data = conn.recv(1024)
-        if data:
-            print("Received heartbeat:", data.decode('utf-8'))
+        if data.decode('utf-8') == "Heartbeat":
+            print(f"Received heartbeat at {time.time()}")
+            conn.send(b"Heartbeat_ack")
+
 
 def send_message(conn):
     while True:
@@ -21,7 +24,7 @@ if __name__ == "__main__":
         print("Connected to server")
 
         # spawn a new thread to receive heartbeats from the server
-        heartbeat_thread = threading.Thread(target=receive_heartbeat, args=(s,))
+        heartbeat_thread = threading.Thread(target=receive_message, args=(s,))
         heartbeat_thread.start()
 
         # spawn a new thread to send messages to the server
