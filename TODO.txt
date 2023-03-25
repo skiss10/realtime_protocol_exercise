@@ -1,4 +1,6 @@
-0.1 ) Have testingclientand server send message objects instread of the bytes you're sending now.
+0.025) think through how you want to have proxy andle disconnections from clietn and/or server.. or perhaps we only ever close proxy from now on?? Think through that...
+0.05) clean up function naming
+0.1 ) Update server to store data temporarily if heartbeats arn't recieved (same threading architecture as on the client side heartbeat monitor -- abstract out?)
 0.2) Create a man in the middle proxy that forwards messages between the client <> Server
 0.3) Create a message routing logic on proxy.py that is a message name of a specific type is received, it triggers a disconnection. 
 
@@ -19,7 +21,6 @@ Implement greeting response from server to client with connection_id, perhaps se
 - Update server.py to handling incoming reconnection type requets (rejecting any older than 120 seconds)
 -
 
-1.2) Add seialization and deserialization to message object?
 
 2) Add a way for server.py to gracefully handle client disconnects and stop heartbeats / thread gracefully
 
