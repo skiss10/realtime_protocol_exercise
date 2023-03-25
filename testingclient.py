@@ -19,7 +19,6 @@ def receive_message(conn, host, port, stop_threads):
     heartbeat_thread.join()
     disconnect_thread.join()
 
-
 def receive_heartbeat(conn, lock, stop_threads):
     global LAST_HEARTBEAT
     while not stop_threads.is_set():
@@ -36,6 +35,9 @@ def receive_heartbeat(conn, lock, stop_threads):
             print("Error reading from Socket")
 
         except TypeError:
+            pass
+
+        except EOFError:
             pass
 
     print("recieved heartbeats stopped")
@@ -96,7 +98,7 @@ def server_handler(host, port):
 
 def main():
     HOST = 'localhost'  # The server's hostname or IP address
-    PORT = 12331  # The port used by the server
+    PORT = 12332  # The port used by the server
 
     try:
         server_handler(HOST, PORT)
