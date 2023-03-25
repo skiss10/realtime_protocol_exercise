@@ -1,24 +1,26 @@
 import socket
 import threading
 import time
+import uuid
+import pickle
 
-from utils.exception_handler import exception_handler
+from utils.message_sender import send_message
 
+SERVER_NAME = str(uuid.uuid4())
 
-@exception_handler
 def handle_client(conn, addr):
     print(f"Connected by {addr}")
     while True:
         data = conn.recv(1024)
         if not data:
             break
-        print(f"Received data from {addr}: {data.decode('utf-8')}")
+        unserialized_data = pickle.loads(data)
+        print(f"Received message type {unserialized_data.name} from {addr} with data: {unserialized_data.data} ")
 
-@exception_handler
 def send_heartbeat(conn,addr):
     while True:
         try:
-            conn.send(b"Heartbeat")
+            send_message(conn, "Heartbeat" , "", SERVER_NAME)
             print(f"Sent Heartbeat to {addr} at {time.time()}")
             time.sleep(5)
         except OSError:
@@ -26,7 +28,6 @@ def send_heartbeat(conn,addr):
             conn.close()
             break
 
-@exception_handler
 def main():
     HOST = 'localhost'  # Symbolic name meaning all available interfaces
     PORT = 12331  # Arbitrary non-privileged port

@@ -1,10 +1,13 @@
 import socket
 import threading
 import time
-import sys
+import uuid
+import pickle
 
-from utils.exception_handler import exception_handler
+from utils.message_sender import send_message
+# from utils.exception_handler import exception_handler
 
+CLIENT_NAME = str(uuid.uuid4())
 LAST_HEARTBEAT = time.time()
 
 def receive_message(conn, host, port, stop_threads):
@@ -21,14 +24,20 @@ def receive_heartbeat(conn, lock, stop_threads):
     global LAST_HEARTBEAT
     while not stop_threads.is_set():
         try:
-            data = conn.recv(1024)
-            if data.decode('utf-8') == "Heartbeat":
+            message = conn.recv(1024)
+            unserialized_message = pickle.loads(message)
+            if unserialized_message.name == "Heartbeat":
                 print(f"Received heartbeat at {time.time()}")
-                conn.send(b"Heartbeat_ack")
+                # conn.send(b"Heartbeat_ack")
+                send_message(conn, "Heartbeat_ack", "Heartbeat_ack", CLIENT_NAME)
                 with lock:
                     LAST_HEARTBEAT = time.time()
         except OSError:
             print("Error reading from Socket")
+
+        except TypeError:
+            pass
+
     print("recieved heartbeats stopped")
 
 def attempt_reconnection(host,port):
@@ -55,13 +64,15 @@ def check_heartbeat(conn, lock, host, port, stop_threads):
                 disconnect_flag = True
         time.sleep(1)
 
-def send_message(conn, stop_threads):
-    conn.send(b"Greetings from the client!")
+def generate_message(conn, stop_threads):
+    # conn.send(b"Greetings from the client!")
+    send_message(conn, "Greeting", "", CLIENT_NAME)
     print("Begin typing your messages to the server!")
     while not stop_threads.is_set():
         try:
-            message = input("Enter message to send: ")
-            conn.send(message.encode('utf-8'))
+            data = input("Enter message to send: ")
+            send_message(conn, "Data", data, CLIENT_NAME)
+            # conn.send(data.encode('utf-8'))
         except OSError:
             print("Unable to send messages over the socket")
     print('Message Sender Stopped')
@@ -77,7 +88,7 @@ def server_handler(host, port):
             heartbeat_thread.start()
 
             # spawn a new thread to send messages to the server
-            message_thread = threading.Thread(target=send_message, args=(s,stop_threads,))
+            message_thread = threading.Thread(target=generate_message, args=(s,stop_threads,))
             message_thread.start()
 
             heartbeat_thread.join()
