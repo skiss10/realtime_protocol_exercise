@@ -1,107 +1,172 @@
+"""
+Socket client
+"""
+
 import socket
 import threading
 import time
 import uuid
 import pickle
 
+from utils.const import HEARTBEAT_INTERVAL
 from utils.message_sender import send_message
-# from utils.exception_handler import exception_handler
+from utils.connection import Connection
 
 CLIENT_NAME = str(uuid.uuid4())
-LAST_HEARTBEAT = time.time()
 
-def receive_message(conn, host, port, stop_threads):
-    lock = threading.Lock()
-    heartbeat_thread = threading.Thread(target=receive_heartbeat, args=(conn, lock, stop_threads,))
-    disconnect_thread = threading.Thread(target=check_heartbeat, args=(conn, lock, host, port, stop_threads,))
-    heartbeat_thread.start()
-    disconnect_thread.start()
-    heartbeat_thread.join()
-    disconnect_thread.join()
+def connection_handler(connection):
+    """
+    Function to recieve messages from the server
+    """
 
-def receive_heartbeat(conn, lock, stop_threads):
-    global LAST_HEARTBEAT
-    while not stop_threads.is_set():
+    # define first hearbeat timestamp as this function's initiation timestamp
+    connection.last_heartbeat_ack = time.time()
+
+    # spawn a new thread to handle inbound messages from server
+    inbound_message_thread = threading.Thread(target=inbound_message_handler, args=(connection,))
+    inbound_message_thread.start()
+
+    # spawn a new thread to check incoming heartbeats from server
+    check_heartbeat_thread = threading.Thread(target=check_heartbeat, args=(connection,))
+    check_heartbeat_thread.start()
+
+    inbound_message_thread.join()
+    check_heartbeat_thread.join()
+
+def inbound_message_handler(connection):
+    """
+    Function to handle inbound messages from Server
+    """
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
+
+        # recieve inbound messages
         try:
-            message = conn.recv(1024)
+            message = connection.conn.recv(1024)
+
+            # unserialize messages
             unserialized_message = pickle.loads(message)
+
+            # check if the messages is a heartbeat
             if unserialized_message.name == "Heartbeat":
                 print(f"Received heartbeat at {time.time()}")
-                # conn.send(b"Heartbeat_ack")
-                send_message(conn, "Heartbeat_ack", "Heartbeat_ack", CLIENT_NAME)
-                with lock:
-                    LAST_HEARTBEAT = time.time()
+
+                # send heartbeat_ack back to server
+                send_message(connection.conn, "Heartbeat_ack", "Heartbeat_ack", CLIENT_NAME)
+                print("Sent Heartbeat_ack")
+
+                # update last heartbeat timestamp
+                connection.last_heartbeat_ack = time.time()
+
         except OSError:
-            print("Error reading from Socket")
+            print("Error reading from Socket. Suspending inbound_message_handler")
+            break
 
-        except TypeError:
-            pass
-
+        # when incomplete message arrives from peer due to disruption / failure
         except EOFError:
-            pass
+            print("Error reading from Socket. Suspending inbound_message_handler")
+            break
 
-    print("recieved heartbeats stopped")
+def attempt_reconnection(connection):
+    """
+    Function to handle reconnection attempts
+    """
 
-def attempt_reconnection(host,port):
+    # attempt to establish the same connection again
     try:
-        server_handler(host, port)
+        server_handler(connection.addr)
+
+    # continue to try reconnection every 10 seconds
     except OSError:
         print("unable to reconnect to server, trying again in 10 seconds...")
         time.sleep(10)
-        attempt_reconnection(host,port)
+        attempt_reconnection(connection)
 
-def check_heartbeat(conn, lock, host, port, stop_threads):
-    global LAST_HEARTBEAT
-    disconnect_flag = False
-    while True:
-        if disconnect_flag:
-            conn.close()
-            stop_threads.set()
-            attempt_reconnection(host,port)
-            break
-        with lock:
-            current_time = time.time()
-            if current_time - LAST_HEARTBEAT > 15:
-                print("Heartbeat not received within 15 seconds. Disconnecting...")
-                disconnect_flag = True
+def check_heartbeat(connection):
+    """
+    Function to check heartbeats coming from server
+    """
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
+        current_time = time.time()
+
+        if current_time - connection.last_heartbeat_ack > 3 * HEARTBEAT_INTERVAL:
+            print("Heartbeats not recieved from server. Disconnecting from server...")
+            connection.connection_thread_stopper.set()
+            connection.conn.close()
+            attempt_reconnection(connection)
+
         time.sleep(1)
 
-def generate_message(conn, stop_threads):
-    # conn.send(b"Greetings from the client!")
-    send_message(conn, "Greeting", "", CLIENT_NAME)
+def generate_message(connection):
+    """
+    Function to generate messages to peer
+    """
+
     print("Begin typing your messages to the server!")
-    while not stop_threads.is_set():
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
+
+        # try sending user input messages to peer
         try:
             data = input("Enter message to send: ")
-            send_message(conn, "Data", data, CLIENT_NAME)
-            # conn.send(data.encode('utf-8'))
+            send_message(connection.conn, "Data", data, CLIENT_NAME)
+
         except OSError:
-            print("Unable to send messages over the socket")
-    print('Message Sender Stopped')
+            print("Unable to send messages over the socket. Suspending generate_message function")
+            break
 
-def server_handler(host, port):
-        stop_threads = threading.Event()
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((host, port))
-            print("Connected to server")
+def server_handler(peer_address):
+    """
+    Function to connection to a peer socket server
+    """
 
-            # spawn a new thread to receive heartbeats from the server
-            heartbeat_thread = threading.Thread(target=receive_message, args=(s,host,port,stop_threads,))
-            heartbeat_thread.start()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
+        conn.connect(peer_address)
+        print("Connected to server")
 
-            # spawn a new thread to send messages to the server
-            message_thread = threading.Thread(target=generate_message, args=(s,stop_threads,))
-            message_thread.start()
+        # instantiate connection object
+        connection = Connection(conn)
+        
+        # set connection object peer address tuple
+        connection.addr = peer_address
 
-            heartbeat_thread.join()
-            message_thread.join()
+        # send gretting message to peer
+        send_message(connection.conn, "Greeting", "", CLIENT_NAME)
+
+        # define variable to stop threads associated with peer connection
+        connection.connection_thread_stopper = threading.Event()
+
+        # spawn a new thread to handle inbound messages from the peer
+        heartbeat_thread = threading.Thread(target=connection_handler, args=(connection,))
+        heartbeat_thread.start()
+
+        # spawn a new thread to send messages to the peer
+        message_thread = threading.Thread(target=generate_message, args=(connection,))
+        message_thread.start()
+
+        heartbeat_thread.join()
+        message_thread.join()
 
 def main():
-    HOST = 'localhost'  # The server's hostname or IP address
-    PORT = 12332  # The port used by the server
+    """
+    Main function for client
+    """
 
+    # define peer location
+    host = '127.0.0.1'
+    port = 12331
+
+    # peer address tuple
+    peer_address = (host,port)
+
+    # attempt to connection to server
     try:
-        server_handler(HOST, PORT)
+        server_handler(peer_address)
+
     except OSError:
         print("Unable to connect to server.")
 
