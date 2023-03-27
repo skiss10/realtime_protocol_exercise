@@ -7,8 +7,9 @@ import threading
 import time
 import uuid
 import pickle
+import logging
 
-from utils.const import HEARTBEAT_INTERVAL
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
 from utils.message_sender import send_message
 from utils.connection import Connection
 
@@ -130,11 +131,14 @@ def main():
         s.listen(5)
         print("Server listening on port", port)
 
+        logging.info("===== Server - starting %s =====", SERVER_NAME)
+
         while True:
 
             # listen for new connections
             conn, addr = s.accept()
             print(f"Connected by {addr}")
+            logging.info("[%s] Server - Socket - incoming client socket %s", SERVER_NAME, s)
 
             # instantiate connection object
             connection = Connection(conn)
@@ -147,4 +151,11 @@ def main():
             client_thread.start()
           
 if __name__ == "__main__":
+
+    # Configure logging
+    logging.basicConfig(level=LOG_LEVEL,
+                        filename=LOG_FILE_PATH,
+                        format='[%(asctime)s] %(levelname)s: %(message)s',
+                        datefmt='%m-%d %H:%M:%S')
+
     main()
