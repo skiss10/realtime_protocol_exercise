@@ -1,15 +1,11 @@
+
+
 0.025) think through how you want to have proxy andle disconnections from clietn and/or server.. or perhaps we only ever close proxy from now on?? Think through that...
-0.05) clean up function naming
+
 0.1 ) Update server to store data temporarily if heartbeats arn't recieved (same threading architecture as on the client side heartbeat monitor -- abstract out?)
-0.2) Create a man in the middle proxy that forwards messages between the client <> Server
-0.3) Create a message routing logic on proxy.py that is a message name of a specific type is received, it triggers a disconnection. 
 
 
 
-
-
-
-1) Figure out how to simulate disconnection on client side by closing conn randomly.
 
 0.5)  Implement these properties for the connection object: https://ably.com/docs/api/realtime-sdk/connection?lang=nodejs
 Implement methods to run upon initialization of Connection object (Setting raddr, etc.)
