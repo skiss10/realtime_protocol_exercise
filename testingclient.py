@@ -8,7 +8,7 @@ import time
 import uuid
 import pickle
 
-from utils.const import HEARTBEAT_INTERVAL
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
 from utils.message_sender import send_message
 from utils.connection import Connection
 
