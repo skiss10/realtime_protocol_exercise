@@ -15,6 +15,31 @@ from utils.connection import Connection
 
 SERVER_NAME = str(uuid.uuid4())
 
+def end_connection(connection):
+    """
+    Function to stop all threads and close all sockets for a given connection
+    """
+    # try to stop other threads related to connection
+    try:
+        if not connection.connection_thread_stopper.is_set():
+            connection.connection_thread_stopper.set()
+            print("threads for connection stopped")
+
+    except OSError:
+        print("Error stopping the connection's theads")
+
+    # try closing the connection's socket
+    try:
+        if connection.state != "closed":
+            connection.state = "closed"
+            connection.conn.close()
+            print("socket for connection closed")
+
+    except OSError:
+        print("Error closing the connections socket")
+
+    
+
 def client_handler(connection):
     """
     Handler for all inbound clients
@@ -60,15 +85,29 @@ def inbound_message_handler(connection, lock):
             # check if the messages is a heartbeat_ack
             if message.name == "Heartbeat_ack":
 
-                # aquire lock to update shared last_heartbeat_ack variable in other threads
-                with lock:
+                try:
+                    # aquire lock to update shared last_heartbeat_ack variable in other threads
+                    with lock:
 
-                    # update last heartbeat ack timestamp
-                    connection.last_heartbeat_ack = time.time()
+                        # update last heartbeat ack timestamp
+                        connection.last_heartbeat_ack = time.time()
+
+                except OSError:
+                    print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack")
+                    end_connection(connection)
+                    break
 
         except OSError:
-            print("Issue recieving data. New messages not being read by inbound_message_handler")
+            print("Issue recieving data. New messages will not be read by inbound_message_handler")
+            end_connection(connection)
             break
+
+        # handle curropted inbound data from peer. 
+        # This is not a realistic failure scenario for an 
+        # Ably client so will pass exception but inform user
+        except EOFError:
+            print("recieved corrupted data from peer. Peer likely closed connection. Server disconnecting from peer")
+            pass
 
 def check_heartbeat_ack(connection, lock):
     """
@@ -81,19 +120,21 @@ def check_heartbeat_ack(connection, lock):
         # get current timestamp
         current_time = time.time()
 
-        with lock:
+        try:
+            with lock:
 
-            # check for three missed heartbeats
-            if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
-                print("Heartbeat_acks are not being recieved from client. Disconnecting Client...")
-                
-                # stop other threads running for the client
-                connection.connection_thread_stopper.set()
+                # check for three missed heartbeats
+                if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
+                    print("Heartbeat_acks are not being recieved from client. Disconnecting Client...")
+                    
+                    # close treads and socket
+                    end_connection(connection)
 
-                # close the connection
-                connection.conn.close()
+                    break
 
-                break
+        except OSError:
+            end_connection(connection)
+            print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack")
 
         # sleep thread checking for heartbeat_acks
         time.sleep(1)
@@ -109,12 +150,13 @@ def send_heartbeat(connection):
 
         # send heartbeats
         try:
-            time.sleep(HEARTBEAT_INTERVAL)
             send_message(connection.conn, "Heartbeat" , "", SERVER_NAME)
             print(f"Sent Heartbeat to {connection.addr} at {time.time()}")
+            time.sleep(HEARTBEAT_INTERVAL)
 
         except OSError:
-            pass
+            print("OSError when trying to send heartbeat")
+            end_connection(connection)
 
 def main():
     """
@@ -127,29 +169,68 @@ def main():
 
     # start server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((host, port))
-        s.listen(5)
-        print("Server listening on port", port)
+        try:
+            s.bind((host, port))
+            s.listen(5)
+            print("Server listening on port", port)
 
-        logging.info("===== Server - starting %s =====", SERVER_NAME)
+            # keep track of active connections.
+            connection_list = []
+        
+        except OSError as error:
+            # handle error when OS hasn't recycled port needed for binding
+            if error.errno == 48:
+                print("Socket has not been closed by OS yet. Wait before trying again")
+            
+            # handle error when socket isn't initialized poroperly
+            elif error.errno == 22:
+                print("Hit OSError: %s", error)
 
-        while True:
+            # handle all other OS failures    
+            else:
+                print("hhitt OSError: %s", error)       
 
-            # listen for new connections
-            conn, addr = s.accept()
-            print(f"Connected by {addr}")
-            logging.info("[%s] Server - Socket - incoming client socket %s", SERVER_NAME, s)
+        try:
+            while True:
+                # listen for new connections
+                conn, addr = s.accept()
+                print(f"Connected by {addr}")
 
-            # instantiate connection object
-            connection = Connection(conn)
+                # instantiate connection object
+                connection = Connection(conn)
 
-            # set connection object peer address
-            connection.addr = addr
+                # give connection an id
+                connection.id = str(uuid.uuid4())
 
-            # handle each client in a separate thread
-            client_thread = threading.Thread(target=client_handler, args=(connection,))
-            client_thread.start()
-          
+                # set connection object peer address
+                connection.addr = addr
+
+                # add new connection to connections list
+                connection_list.append(connection)
+
+                # handle each client in a separate thread
+                client_thread = threading.Thread(target=client_handler, args=(connection,))
+                client_thread.start()
+
+        except KeyboardInterrupt:
+            print("Server stopped listening for new connections")
+
+            # check for connections
+            if len(connection_list) >= 1:
+
+                # close sockets and stop threads for each connection
+                for connection_object in connection_list:
+                    end_connection(connection_object)
+
+            print("All connection sockets closed and threads stopped")
+
+        except OSError as error:
+            # operating system is preventing the socket from accepting connections.
+            if error.errno == 22:
+                print("OS is preventing the socket from accepting connections.")
+
+
+
 if __name__ == "__main__":
 
     # Configure logging
