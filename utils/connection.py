@@ -15,9 +15,11 @@ class Connection:
         Initialize connection attributes
         """
         self.conn = conn
+        self.id = None
         self.addr = None
         self.connection_thread_stopper = None
         self.last_heartbeat_ack = None
+        self.state = None
 
     def detect_heartbeat(self):
         """
