@@ -14,6 +14,29 @@ from utils.connection import Connection
 
 CLIENT_NAME = str(uuid.uuid4())
 
+def end_connection(connection):
+    """
+    Function to stop all threads and close all sockets for a given connection
+    """
+    # stop threads related to connection
+    try:
+        if not connection.connection_thread_stopper.is_set():
+            connection.connection_thread_stopper.set()
+            print("threads for connection are flagged to stop")
+
+    except OSError:
+        print("Error stopping the connection's theads")
+
+    # close the connection's socket
+    try:
+        if connection.state != "closed":
+            connection.state = "closed"
+            connection.conn.close()
+            print("socket for connection closed")
+
+    except OSError:
+        print("Error closing the connections socket")
+
 def connection_handler(connection):
     """
     Function to recieve messages from the server
@@ -59,11 +82,12 @@ def inbound_message_handler(connection):
                 # update last heartbeat timestamp
                 connection.last_heartbeat_ack = time.time()
 
+        # trigger error when thread can't read from socket
         except OSError:
-            print("Error reading from Socket. Suspending inbound_message_handler")
+            print("Error reading from Socket")
             break
 
-        # when incomplete message arrives from peer due to disruption / failure
+        # trigger error when incomplete message arrives from peer due to disruption / failure
         except EOFError:
             print("Error reading from Socket. Suspending inbound_message_handler")
             break
@@ -90,13 +114,21 @@ def check_heartbeat(connection):
 
     # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
+
+        # get current time
         current_time = time.time()
 
+        # check how long its been since last heartbeat
         if current_time - connection.last_heartbeat_ack > 3 * HEARTBEAT_INTERVAL:
+
+            # handle missed heartbeats
             print("Heartbeats not recieved from server. Disconnecting from server...")
-            connection.connection_thread_stopper.set()
-            connection.conn.close()
+            end_connection(connection)
+
+            # start attempting to reconnect to server
             attempt_reconnection(connection)
+
+            break
 
         time.sleep(1)
 
@@ -104,6 +136,9 @@ def generate_message(connection):
     """
     Function to generate messages to peer
     """
+    
+    # wait for heartbeats to arrive before allowing prompts
+    time.sleep(2*HEARTBEAT_INTERVAL)
 
     print("Begin typing your messages to the server!")
 
@@ -116,7 +151,7 @@ def generate_message(connection):
             send_message(connection.conn, "Data", data, CLIENT_NAME)
 
         except OSError:
-            print("Unable to send messages over the socket. Suspending generate_message function")
+            print("Unable to send messages over the socket. Suspending generate_message")
             break
 
 def server_handler(peer_address):
@@ -125,31 +160,36 @@ def server_handler(peer_address):
     """
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
-        conn.connect(peer_address)
-        print("Connected to server")
+        try:
+            conn.connect(peer_address)
+            print("Connected to server")
 
-        # instantiate connection object
-        connection = Connection(conn)
-        
-        # set connection object peer address tuple
-        connection.addr = peer_address
+            # instantiate connection object
+            connection = Connection(conn)
+            
+            # set connection object peer address tuple
+            connection.addr = peer_address
 
-        # send gretting message to peer
-        send_message(connection.conn, "Greeting", "", CLIENT_NAME)
+            # send gretting message to peer
+            send_message(connection.conn, "Greeting", "", CLIENT_NAME)
 
-        # define variable to stop threads associated with peer connection
-        connection.connection_thread_stopper = threading.Event()
+            # define variable to stop threads associated with peer connection
+            connection.connection_thread_stopper = threading.Event()
 
-        # spawn a new thread to handle inbound messages from the peer
-        heartbeat_thread = threading.Thread(target=connection_handler, args=(connection,))
-        heartbeat_thread.start()
+            # spawn a new thread to handle inbound messages from the peer
+            heartbeat_thread = threading.Thread(target=connection_handler, args=(connection,))
+            heartbeat_thread.start()
 
-        # spawn a new thread to send messages to the peer
-        message_thread = threading.Thread(target=generate_message, args=(connection,))
-        message_thread.start()
+            # spawn a new thread to send messages to the peer
+            message_thread = threading.Thread(target=generate_message, args=(connection,))
+            message_thread.start()
 
-        heartbeat_thread.join()
-        message_thread.join()
+            heartbeat_thread.join()
+            message_thread.join()
+
+        # stop threads and close connection if keyboard interrupt
+        except KeyboardInterrupt:
+            end_connection(connection)
 
 def main():
     """
@@ -168,7 +208,7 @@ def main():
         server_handler(peer_address)
 
     except OSError:
-        print("Unable to connect to server.")
+        print("Unable to connect to server. Has the Server been started?")
 
 if __name__ == "__main__":
     main()

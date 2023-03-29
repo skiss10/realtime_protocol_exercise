@@ -19,16 +19,16 @@ def end_connection(connection):
     """
     Function to stop all threads and close all sockets for a given connection
     """
-    # try to stop other threads related to connection
+    # stop threads related to connection
     try:
         if not connection.connection_thread_stopper.is_set():
             connection.connection_thread_stopper.set()
-            print("threads for connection stopped")
+            print("threads for connection are flagged to stop")
 
     except OSError:
         print("Error stopping the connection's theads")
 
-    # try closing the connection's socket
+    # close the connection's socket
     try:
         if connection.state != "closed":
             connection.state = "closed"
@@ -37,8 +37,6 @@ def end_connection(connection):
 
     except OSError:
         print("Error closing the connections socket")
-
-    
 
 def client_handler(connection):
     """
@@ -93,21 +91,20 @@ def inbound_message_handler(connection, lock):
                         connection.last_heartbeat_ack = time.time()
 
                 except OSError:
-                    print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack")
-                    end_connection(connection)
+                    print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack. stopping inbound_message_handler thread for connection, %s", connection.id)
                     break
 
+        # handle socket read errors
         except OSError:
-            print("Issue recieving data. New messages will not be read by inbound_message_handler")
-            end_connection(connection)
+            print("Issue recieving data. stopping inbound_message_handler for connection %s", connection.id)
+
+            # handle corrupted inbound data from peer. This is not a realistic failure scenario for an Ably client so will break loop
             break
 
-        # handle curropted inbound data from peer. 
-        # This is not a realistic failure scenario for an 
-        # Ably client so will pass exception but inform user
+        # handle corrupted inbound data from peer. This is not a realistic failure scenario for an Ably client so will break loop
         except EOFError:
-            print("recieved corrupted data from peer. Peer likely closed connection. Server disconnecting from peer")
-            pass
+            print("recieved corrupted data from peer. Peer likely closed connection. Server disconnecting from peer for connection %s", connection.id)
+            break
 
 def check_heartbeat_ack(connection, lock):
     """
@@ -130,11 +127,12 @@ def check_heartbeat_ack(connection, lock):
                     # close treads and socket
                     end_connection(connection)
 
+                    #break loop
                     break
 
         except OSError:
-            end_connection(connection)
-            print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack")
+            print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack for connection %s" , connection.id)
+            break
 
         # sleep thread checking for heartbeat_acks
         time.sleep(1)
@@ -154,9 +152,10 @@ def send_heartbeat(connection):
             print(f"Sent Heartbeat to {connection.addr} at {time.time()}")
             time.sleep(HEARTBEAT_INTERVAL)
 
+        # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
         except OSError:
             print("OSError when trying to send heartbeat")
-            end_connection(connection)
+            break
 
 def main():
     """
@@ -186,9 +185,9 @@ def main():
             elif error.errno == 22:
                 print("Hit OSError: %s", error)
 
-            # handle all other OS failures    
+            # handle all other OS failures
             else:
-                print("hhitt OSError: %s", error)       
+                print("hit OSError: %s", error)       
 
         try:
             while True:
@@ -221,15 +220,12 @@ def main():
                 # close sockets and stop threads for each connection
                 for connection_object in connection_list:
                     end_connection(connection_object)
-
-            print("All connection sockets closed and threads stopped")
+                    print("All connection sockets closed and threads stopped for connect %s" , connection_object.id)
 
         except OSError as error:
             # operating system is preventing the socket from accepting connections.
             if error.errno == 22:
                 print("OS is preventing the socket from accepting connections.")
-
-
 
 if __name__ == "__main__":
 
