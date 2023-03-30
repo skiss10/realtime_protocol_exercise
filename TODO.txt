@@ -1,7 +1,8 @@
 
-1) Update testingproxy to handle multiple clients and error handle better!
+1) Figure out how to have testingproxy.py handle multiple clients properly (when killing proxy with more than one connection it breaks.)
 
-2) Have testingserver.py send connection_id to client so reconnects can reference that connection
+2) Have testingclient do reconnection attempts by passing previous connectionid
+
 
 
 0.025) think through how you want to have proxy andle disconnections from clietn and/or server.. or perhaps we only ever close proxy from now on?? Think through that...
