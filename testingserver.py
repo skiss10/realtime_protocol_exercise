@@ -78,7 +78,7 @@ def inbound_message_handler(connection, lock):
 
             # unserialize data from socket
             message = pickle.loads(serialized_message)
-            print(f"Received message type {message.name} from {connection.addr} with data: {message.data}" )
+            print(f"Received message type {message.name} from {connection.id} with data: {message.data}" )
 
             # check if the messages is a heartbeat_ack
             if message.name == "Heartbeat_ack":
@@ -103,7 +103,7 @@ def inbound_message_handler(connection, lock):
 
         # handle corrupted inbound data from peer. This is not a realistic failure scenario for an Ably client so will break loop
         except EOFError:
-            print("recieved corrupted data from peer. Peer likely closed connection. Server disconnecting from peer for connection %s", connection.id)
+            print("recieved corrupted data from peer. Peer likely closed connection. suspending inbound_message_handler for %s", connection.id)
             break
 
 def check_heartbeat_ack(connection, lock):
@@ -154,7 +154,7 @@ def send_heartbeat(connection):
 
         # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
         except OSError:
-            print("OSError when trying to send heartbeat")
+            print("OSError when trying to send heartbeat. Suspending send_heartbeat function")
             break
 
 def main():
