@@ -33,7 +33,7 @@ def end_connection(connection):
         if connection.state != "closed":
             connection.state = "closed"
             connection.conn.close()
-            print("socket for connection closed")
+            print("socket for connection %s closed", connection.id)
 
     except OSError:
         print("Error closing the connections socket")
@@ -94,6 +94,18 @@ def inbound_message_handler(connection, lock):
                     print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack. stopping inbound_message_handler thread for connection, %s", connection.id)
                     break
 
+            # check if the messages is a greeing
+            if message.name == "Greeting":
+
+                try:
+
+                    # send greeting ack response with connection id inclueded
+                    send_message(connection.conn, "Greeting_ack", connection.id, SERVER_NAME)
+
+                except OSError:
+                    print("OSError hit attemptng send Greeting_ack. stopping inbound_message_handler thread for connection, %s", connection.id)
+                    break
+
         # handle socket read errors
         except OSError:
             print("Issue recieving data. stopping inbound_message_handler for connection %s", connection.id)
@@ -122,7 +134,7 @@ def check_heartbeat_ack(connection, lock):
 
                 # check for three missed heartbeats
                 if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
-                    print("Heartbeat_acks are not being recieved from client. Disconnecting Client...")
+                    print("Heartbeat_acks are not being recieved from client. Disconnecting Client %s", connection.id)
                     
                     # close treads and socket
                     end_connection(connection)
@@ -149,7 +161,7 @@ def send_heartbeat(connection):
         # send heartbeats
         try:
             send_message(connection.conn, "Heartbeat" , "", SERVER_NAME)
-            print(f"Sent Heartbeat to {connection.addr} at {time.time()}")
+            print(f"Sent Heartbeat to {connection.id} at {time.time()}")
             time.sleep(HEARTBEAT_INTERVAL)
 
         # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
