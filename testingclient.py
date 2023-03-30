@@ -82,6 +82,14 @@ def inbound_message_handler(connection):
                 # update last heartbeat timestamp
                 connection.last_heartbeat_ack = time.time()
 
+            # check if the messages is a Greeting_ack
+            elif unserialized_message.name == "Greeting_ack":
+                print("Received Greeting_ack")
+                print("connection_id from server is %s", unserialized_message.data)
+
+                # assign connection id
+                connection.id = unserialized_message.data
+
         # trigger error when thread can't read from socket
         except OSError:
             print("Error reading from Socket")
@@ -201,7 +209,7 @@ def main():
 
     # define peer location
     host = '127.0.0.1'
-    port = 12331
+    port = 12332
 
     # peer address tuple
     peer_address = (host,port)
