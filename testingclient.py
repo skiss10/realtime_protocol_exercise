@@ -136,19 +136,22 @@ def generate_message(connection):
     """
     Function to generate messages to peer
     """
-    
-    # wait for heartbeats to arrive before allowing prompts
-    time.sleep(2*HEARTBEAT_INTERVAL)
 
-    print("Begin typing your messages to the server!")
+    print("Starting to send messages to server!")
+    counter = 0
 
     # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
 
         # try sending user input messages to peer
         try:
-            data = input("Enter message to send: ")
+            data = counter
             send_message(connection.conn, "Data", data, CLIENT_NAME)
+            print("sent messages to server with payload: %s", data)
+            counter += 1
+
+            # send an incrementing counter every 1 second to server
+            time.sleep(1)
 
         except OSError:
             print("Unable to send messages over the socket. Suspending generate_message")
