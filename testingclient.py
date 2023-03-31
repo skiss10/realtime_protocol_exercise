@@ -198,7 +198,7 @@ def main():
         server_handler(peer_address)
 
     except OSError:
-        print("Unable to connect to server. Has the Server been started?")
+        print("Unable to connect to server. Has the Server and/or proxy server been started?")
 
 if __name__ == "__main__":
     print(CLIENT_NAME)
