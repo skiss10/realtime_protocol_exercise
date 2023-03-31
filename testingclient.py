@@ -90,6 +90,9 @@ def inbound_message_handler(connection):
                 # assign connection id
                 connection.id = unserialized_message.data
 
+            elif unserialized_message.name == "Data":
+                print("recieved message from server with payload: %s", unserialized_message.data)
+
         # trigger error when thread can't read from socket
         except OSError:
             print("Error reading from Socket")
@@ -107,7 +110,7 @@ def attempt_reconnection(connection):
 
     # attempt to establish the same connection again
     try:
-        server_handler(connection.addr)
+        server_handler(connection.addr, connection.id)
 
     # continue to try reconnection every 10 seconds
     except OSError:
@@ -140,32 +143,7 @@ def check_heartbeat(connection):
 
         time.sleep(1)
 
-def generate_message(connection):
-    """
-    Function to generate messages to peer
-    """
-
-    print("Starting to send messages to server!")
-    counter = 0
-
-    # continuous loop contingent on status of connection's threads
-    while not connection.connection_thread_stopper.is_set():
-
-        # try sending user input messages to peer
-        try:
-            data = counter
-            send_message(connection.conn, "Data", data, CLIENT_NAME)
-            print("sent messages to server with payload: %s", data)
-            counter += 1
-
-            # send an incrementing counter every 1 second to server
-            time.sleep(1)
-
-        except OSError:
-            print("Unable to send messages over the socket. Suspending generate_message")
-            break
-
-def server_handler(peer_address):
+def server_handler(peer_address, existing_connection_id = None):
     """
     Function to connection to a peer socket server
     """
@@ -181,22 +159,23 @@ def server_handler(peer_address):
             # set connection object peer address tuple
             connection.addr = peer_address
 
-            # send gretting message to peer
-            send_message(connection.conn, "Greeting", "", CLIENT_NAME)
+            if existing_connection_id == None:
+                # send gretting message to peer
+                send_message(connection.conn, "Greeting", "", CLIENT_NAME)
+                print("sent greeting message")
+
+            else:
+                # send reconnect message to peer
+                send_message(connection.conn, "reconnect_attempt", existing_connection_id, CLIENT_NAME)
+                print("sent reconnection message")
 
             # define variable to stop threads associated with peer connection
             connection.connection_thread_stopper = threading.Event()
 
             # spawn a new thread to handle inbound messages from the peer
-            heartbeat_thread = threading.Thread(target=connection_handler, args=(connection,))
-            heartbeat_thread.start()
-
-            # spawn a new thread to send messages to the peer
-            message_thread = threading.Thread(target=generate_message, args=(connection,))
-            message_thread.start()
-
-            heartbeat_thread.join()
-            message_thread.join()
+            connection_handler_thread = threading.Thread(target=connection_handler, args=(connection,))
+            connection_handler_thread.start()
+            connection_handler_thread.join()
 
         # stop threads and close connection if keyboard interrupt
         except KeyboardInterrupt:

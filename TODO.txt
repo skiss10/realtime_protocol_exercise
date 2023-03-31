@@ -1,6 +1,4 @@
 
-1) Figure out how to have testingproxy.py handle multiple clients properly (when killing proxy with more than one connection it breaks.)
-
 2) Have testingclient do reconnection attempts by passing previous connectionid
 
 

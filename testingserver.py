@@ -15,6 +15,31 @@ from utils.connection import Connection
 
 SERVER_NAME = str(uuid.uuid4())
 
+def generate_message(connection):
+    """
+    Function to generate messages to peer
+    """
+
+    print("Starting to send messages to server!")
+    counter = 0
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
+
+        # try sending user input messages to peer
+        try:
+            data = counter
+            send_message(connection.conn, "Data", data, SERVER_NAME)
+            print(f"sent messages to client {connection.client_id} with payload: {data}")
+            counter += 1
+
+            # send an incrementing counter every 1 second to server
+            time.sleep(1)
+
+        except OSError:
+            print("Unable to send messages over the socket. Suspending generate_message")
+            break
+
 def end_connection(connection):
     """
     Function to stop all threads and close all sockets for a given connection
@@ -59,6 +84,10 @@ def client_handler(connection):
     # spawn a new thread to monitor heartbeats_acks from the client
     heartbeat_ack_thread = threading.Thread(target=check_heartbeat_ack, args=(connection, lock,))
     heartbeat_ack_thread.start()
+
+    # spawn a new thread to send messages to the peer
+    message_thread = threading.Thread(target=generate_message, args=(connection,))
+    message_thread.start()
 
     # spawn a new thread to send heartbeats to the client
     heartbeat_thread = threading.Thread(target=send_heartbeat, args=(connection,))
@@ -108,6 +137,15 @@ def inbound_message_handler(connection, lock):
                 except OSError:
                     print("OSError hit attemptng send Greeting_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
                     break
+
+            # check if the messages is a reconnect
+            if message.name == "reconnect_attempt": #TODO update this to handle reconnection attempts from client
+
+                try:
+                    print(f"reconnection attempt from client {connection.client_id}")
+
+                except OSError:
+                    pass
 
         # handle socket read errors
         except OSError:
