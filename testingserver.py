@@ -33,7 +33,7 @@ def end_connection(connection):
         if connection.state != "closed":
             connection.state = "closed"
             connection.conn.close()
-            print("socket for connection %s closed", connection.id)
+            print("socket for connection %s closed", connection.client_id)
 
     except OSError:
         print("Error closing the connections socket")
@@ -78,7 +78,7 @@ def inbound_message_handler(connection, lock):
 
             # unserialize data from socket
             message = pickle.loads(serialized_message)
-            print(f"Received message type {message.name} from {connection.id} with data: {message.data}" )
+            print(f"Received message type {message.name} from {connection.client_id} with data: {message.data}" )
 
             # check if the messages is a heartbeat_ack
             if message.name == "Heartbeat_ack":
@@ -91,7 +91,7 @@ def inbound_message_handler(connection, lock):
                         connection.last_heartbeat_ack = time.time()
 
                 except OSError:
-                    print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack. stopping inbound_message_handler thread for connection, %s", connection.id)
+                    print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
                     break
 
             # check if the messages is a greeing
@@ -102,20 +102,23 @@ def inbound_message_handler(connection, lock):
                     # send greeting ack response with connection id inclueded
                     send_message(connection.conn, "Greeting_ack", connection.id, SERVER_NAME)
 
+                    # assign client_id for connection
+                    connection.client_id = message.sender_id
+
                 except OSError:
-                    print("OSError hit attemptng send Greeting_ack. stopping inbound_message_handler thread for connection, %s", connection.id)
+                    print("OSError hit attemptng send Greeting_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
                     break
 
         # handle socket read errors
         except OSError:
-            print("Issue recieving data. stopping inbound_message_handler for connection %s", connection.id)
+            print("Issue recieving data. stopping inbound_message_handler for connection %s", connection.client_id)
 
             # handle corrupted inbound data from peer. This is not a realistic failure scenario for an Ably client so will break loop
             break
 
         # handle corrupted inbound data from peer. This is not a realistic failure scenario for an Ably client so will break loop
         except EOFError:
-            print("recieved corrupted data from peer. Peer likely closed connection. suspending inbound_message_handler for %s", connection.id)
+            print("recieved corrupted data from peer. Peer likely closed connection. suspending inbound_message_handler for %s", connection.client_id)
             break
 
 def check_heartbeat_ack(connection, lock):
@@ -134,7 +137,7 @@ def check_heartbeat_ack(connection, lock):
 
                 # check for three missed heartbeats
                 if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
-                    print("Heartbeat_acks are not being recieved from client. Disconnecting Client %s", connection.id)
+                    print("Heartbeat_acks are not being recieved from client. Disconnecting Client %s", connection.client_id)
                     
                     # close treads and socket
                     end_connection(connection)
@@ -143,7 +146,7 @@ def check_heartbeat_ack(connection, lock):
                     break
 
         except OSError:
-            print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack for connection %s" , connection.id)
+            print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack for connection %s" , connection.client_id)
             break
 
         # sleep thread checking for heartbeat_acks
@@ -161,7 +164,7 @@ def send_heartbeat(connection):
         # send heartbeats
         try:
             send_message(connection.conn, "Heartbeat" , "", SERVER_NAME)
-            print(f"Sent Heartbeat to {connection.id} at {time.time()}")
+            print(f"Sent Heartbeat to {connection.client_id} at {time.time()}")
             time.sleep(HEARTBEAT_INTERVAL)
 
         # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
