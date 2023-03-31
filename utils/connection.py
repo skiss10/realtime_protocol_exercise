@@ -20,6 +20,7 @@ class Connection:
         self.connection_thread_stopper = None
         self.last_heartbeat_ack = None
         self.state = None
+        self.client_id = None
 
     def detect_heartbeat(self):
         """
