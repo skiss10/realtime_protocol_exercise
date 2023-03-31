@@ -9,9 +9,10 @@ import uuid
 import pickle
 import logging
 
-from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
-from utils.message_sender import send_message
 from utils.connection import Connection
+from utils.session_store import InMemoryStore
+from utils.message_sender import send_message
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
 
 SERVER_NAME = str(uuid.uuid4())
 
@@ -20,7 +21,7 @@ def generate_message(connection):
     Function to generate messages to peer
     """
 
-    print("Starting to send messages to server!")
+    print("Starting to send messages to client!")
     counter = 0
 
     # continuous loop contingent on status of connection's threads
@@ -65,24 +66,24 @@ def end_connection(connection):
 
 def client_handler(connection):
     """
-    Handler for all inbound clients
+    Handler function for all inbound clients
     """
 
     # define variable to stop threads associated with client
     connection.connection_thread_stopper = threading.Event()
 
-    # define first hearbeat_ack timestamp as client_handler initiation timestamp
+    # define first hearbeat_ack timestamp as client_handler initiation time
     connection.last_heartbeat_ack = time.time()
 
-    # create lock for shared variables between threads
-    lock = threading.Lock()
+    # create lock for shared last_heartbeat_ack variable between threads
+    connection.threading_lock = threading.Lock()
 
     # spawn a new thread to handle inbound messages from client
-    inbound_messages_thread = threading.Thread(target=inbound_message_handler, args=(connection, lock,))
+    inbound_messages_thread = threading.Thread(target=inbound_message_handler, args=(connection,))
     inbound_messages_thread.start()
 
     # spawn a new thread to monitor heartbeats_acks from the client
-    heartbeat_ack_thread = threading.Thread(target=check_heartbeat_ack, args=(connection, lock,))
+    heartbeat_ack_thread = threading.Thread(target=check_heartbeat_ack, args=(connection,))
     heartbeat_ack_thread.start()
 
     # spawn a new thread to send messages to the peer
@@ -117,13 +118,13 @@ def reconnection_attempt_message_handler(connection, message):
     connection.client_id = message.sender_id
     print(f"reconnection attempt from client {connection.client_id}")
 
-def heartbeat_ack_message_handler(connection, lock):
+def heartbeat_ack_message_handler(connection):
     """
     Function to handle heartbeat ack messages from client
     """
     try:
         # aquire lock to update shared last_heartbeat_ack variable in other threads
-        with lock:
+        with connection.threading_lock:
 
             # update last heartbeat ack timestamp
             connection.last_heartbeat_ack = time.time()
@@ -131,7 +132,7 @@ def heartbeat_ack_message_handler(connection, lock):
     except OSError:
         print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
 
-def inbound_message_handler(connection, lock):
+def inbound_message_handler(connection):
     """
     Handler for all messages inbound to the client.
     """
@@ -149,7 +150,7 @@ def inbound_message_handler(connection, lock):
 
             # check if the messages is a heartbeat_ack
             if message.name == "Heartbeat_ack":
-                heartbeat_ack_message_handler(connection, lock)
+                heartbeat_ack_message_handler(connection)
 
             # check if the messages is a greeing
             elif message.name == "Greeting":
@@ -171,7 +172,7 @@ def inbound_message_handler(connection, lock):
             print("recieved corrupted data from peer. Peer likely closed connection. suspending inbound_message_handler for %s", connection.client_id)
             break
 
-def check_heartbeat_ack(connection, lock):
+def check_heartbeat_ack(connection):
     """
     Function to ensure heartbeats are being recieved from client
     """
@@ -183,13 +184,13 @@ def check_heartbeat_ack(connection, lock):
         current_time = time.time()
 
         try:
-            with lock:
+            with connection.threading_lock:
 
                 # check for three missed heartbeats
                 if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
                     print("Heartbeat_acks are not being recieved from client. Disconnecting Client %s", connection.client_id)
                     
-                    # close treads and socket
+                    # close threads and socket
                     end_connection(connection)
 
                     #break loop
@@ -214,7 +215,7 @@ def send_heartbeat(connection):
         # send heartbeats
         try:
             send_message(connection.conn, "Heartbeat" , "", SERVER_NAME)
-            print(f"Sent Heartbeat to {connection.client_id} at {time.time()}")
+            print(f"Sent Heartbeat to {connection.client_id}")
             time.sleep(HEARTBEAT_INTERVAL)
 
         # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
@@ -252,7 +253,7 @@ def main():
 
             # handle all other OS failures
             else:
-                print("hit OSError: %s", error)       
+                print("hit OSError: %s", error)  
 
         try:
             while True:
@@ -268,6 +269,9 @@ def main():
 
                 # set connection object peer address
                 connection.addr = addr
+
+                # create connection session storage
+                connection.session_storage = InMemoryStore()
 
                 # add new connection to connections list
                 connection_list.append(connection)
