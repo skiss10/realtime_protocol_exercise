@@ -222,4 +222,5 @@ def main():
         print("Unable to connect to server. Has the Server been started?")
 
 if __name__ == "__main__":
+    print(CLIENT_NAME)
     main()
