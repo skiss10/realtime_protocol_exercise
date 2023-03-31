@@ -121,27 +121,27 @@ def main():
         proxy_server_socket.listen(5)
         print(f'Proxy Server started on {proxy_server_address[0]}:{proxy_server_address[1]}')
 
-        # connect to the real server
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_address= ('localhost', 12331)
-        server_socket.connect(server_address)
-        print(f'Conected to server {server_address[0]}:{server_address[1]}')
-
-        # create server connection object
-        server_connection = Connection(server_socket)
-        server_connection.addr = server_address
-        server_connection.connection_thread_stopper = threading.Event()
-        server_connection.id = "SERVER_CONNECTION_FROM_PROXY"
-
-        # create list of connections and add server connection in there.
-        connection_list = [server_connection]
-
         # listen for new client connections
         while True:
 
             # assign variable to new socket connections
             client_socket, client_address = proxy_server_socket.accept()
             print(f'Client connected: {client_address[0]}:{client_address[1]}')
+
+            # Set up another connection to the real server
+            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_address= ('localhost', 12331)
+            server_socket.connect(server_address)
+            print(f'Conected to server {server_address[0]}:{server_address[1]}')
+
+            # create server connection object
+            server_connection = Connection(server_socket)
+            server_connection.addr = server_address
+            server_connection.connection_thread_stopper = threading.Event()
+            server_connection.id = "SERVER_CONNECTION_FROM_PROXY"
+
+            # create list of connections and add server connection in there.
+            connection_list = [server_connection]
 
             # create client_connection object
             client_connection = Connection(server_socket)
