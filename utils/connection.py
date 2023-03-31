@@ -21,6 +21,8 @@ class Connection:
         self.last_heartbeat_ack = None
         self.state = None
         self.client_id = None
+        self.session_storage = None
+        self.threading_lock = None
 
     def detect_heartbeat(self):
         """
