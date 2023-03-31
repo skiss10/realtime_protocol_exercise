@@ -72,7 +72,6 @@ def client_router(client_connection, server_connection):
             end_connection(server_connection)
             break
 
-
 def server_router(client_connection, server_connection):
     """
     Function to route messages from server
@@ -105,8 +104,6 @@ def server_router(client_connection, server_connection):
             print("Issues with client Socket. Suspending server_router")
             end_connection(client_connection)
             break
-
-
         
 def main():
     """
@@ -171,7 +168,6 @@ def main():
             for connection_object in connection_list:
                 end_connection(connection_object)
                 print("All connection sockets closed and threads stopped for connect %s" , connection_object.id)
-
 
 if __name__ == '__main__':
     main()
