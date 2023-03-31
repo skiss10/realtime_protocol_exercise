@@ -93,6 +93,44 @@ def client_handler(connection):
     heartbeat_thread = threading.Thread(target=send_heartbeat, args=(connection,))
     heartbeat_thread.start()
 
+def greeting_message_handler(connection, message):
+    """
+    Function to handle client greeting message
+    """
+    try:
+
+        # assign client_id for connection
+        connection.client_id = message.sender_id
+
+        # send greeting ack response with connection id inclueded
+        send_message(connection.conn, "Greeting_ack", connection.id, SERVER_NAME)
+
+    except OSError:
+        print("OSError hit attemptng send Greeting_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
+
+def reconnection_attempt_message_handler(connection, message):
+    """
+    Function to handle reconnections from the client
+    """
+
+    # assign client_id for connection
+    connection.client_id = message.sender_id
+    print(f"reconnection attempt from client {connection.client_id}")
+
+def heartbeat_ack_message_handler(connection, lock):
+    """
+    Function to handle heartbeat ack messages from client
+    """
+    try:
+        # aquire lock to update shared last_heartbeat_ack variable in other threads
+        with lock:
+
+            # update last heartbeat ack timestamp
+            connection.last_heartbeat_ack = time.time()
+
+    except OSError:
+        print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
+
 def inbound_message_handler(connection, lock):
     """
     Handler for all messages inbound to the client.
@@ -107,45 +145,19 @@ def inbound_message_handler(connection, lock):
 
             # unserialize data from socket
             message = pickle.loads(serialized_message)
-            print(f"Received message type {message.name} from {connection.client_id} with data: {message.data}" )
+            print(f"Received message type {message.name} from {message.sender_id} with data: {message.data}" )
 
             # check if the messages is a heartbeat_ack
             if message.name == "Heartbeat_ack":
-
-                try:
-                    # aquire lock to update shared last_heartbeat_ack variable in other threads
-                    with lock:
-
-                        # update last heartbeat ack timestamp
-                        connection.last_heartbeat_ack = time.time()
-
-                except OSError:
-                    print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
-                    break
+                heartbeat_ack_message_handler(connection, lock)
 
             # check if the messages is a greeing
-            if message.name == "Greeting":
-
-                try:
-
-                    # send greeting ack response with connection id inclueded
-                    send_message(connection.conn, "Greeting_ack", connection.id, SERVER_NAME)
-
-                    # assign client_id for connection
-                    connection.client_id = message.sender_id
-
-                except OSError:
-                    print("OSError hit attemptng send Greeting_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
-                    break
+            elif message.name == "Greeting":
+                greeting_message_handler(connection, message)
 
             # check if the messages is a reconnect
-            if message.name == "reconnect_attempt": #TODO update this to handle reconnection attempts from client
-
-                try:
-                    print(f"reconnection attempt from client {connection.client_id}")
-
-                except OSError:
-                    pass
+            elif message.name == "reconnect_attempt":
+                reconnection_attempt_message_handler(connection, message)
 
         # handle socket read errors
         except OSError:
