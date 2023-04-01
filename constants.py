@@ -13,3 +13,6 @@ LOG_FILE_PATH = './app.log'
 
 # Set heartbeat interval in seconds
 HEARTBEAT_INTERVAL = 5
+
+# set reconnect window in seconds (after which reconnection attemps are rejected)
+RECONNECT_WINDOW = 15
