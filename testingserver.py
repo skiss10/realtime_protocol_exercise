@@ -12,9 +12,13 @@ import logging
 from utils.connection import Connection
 from utils.session_store import InMemoryStore
 from utils.message_sender import send_message
-from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, RECONNECT_WINDOW
 
+# create a unique server name
 SERVER_NAME = str(uuid.uuid4())
+
+# dictionary of all connections for this server
+CONNECTION_LIST = {}
 
 def generate_message(connection):
     """
@@ -59,7 +63,7 @@ def end_connection(connection):
         if connection.state != "closed":
             connection.state = "closed"
             connection.conn.close()
-            print("socket for connection %s closed", connection.client_id)
+            print(f"socket for connection {connection.client_id} closed over connection {connection.id}")
 
     except OSError:
         print("Error closing the connections socket")
@@ -117,6 +121,27 @@ def reconnection_attempt_message_handler(connection, message):
     # assign client_id for connection
     connection.client_id = message.sender_id
     print(f"reconnection attempt from client {connection.client_id}")
+
+    # Loop over connections connections in data store
+    for _, connection_object in CONNECTION_LIST.items():
+
+        # check if the requested connection_id is there
+        if connection_object.id == message.data:
+
+            # get current timestamp
+            current_time = time.time()
+
+            # see if the last heartbeat ack was recieved within the reconnection window
+            if current_time - connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
+                print("successful reconnect attempt")
+
+            else:
+                print(f"reconnection request from {message.sender_id} rejected because the reconnection window timed out")
+                send_message(connection.conn, "Reconnect_Rejected", "timeout", send_message)
+
+        else:
+            print(f"reconnect request from {message.sender_id} was rejected as there is no record of the provided connection_id state")
+            send_message(connection.conn, "Reconnect_Rejected", "no_recorded_state", send_message)
 
 def heartbeat_ack_message_handler(connection):
     """
@@ -238,9 +263,6 @@ def main():
             s.bind((host, port))
             s.listen(5)
             print("Server listening on port", port)
-
-            # keep track of active connections.
-            connection_list = []
         
         except OSError as error:
             # handle error when OS hasn't recycled port needed for binding
@@ -274,7 +296,7 @@ def main():
                 connection.session_storage = InMemoryStore()
 
                 # add new connection to connections list
-                connection_list.append(connection)
+                CONNECTION_LIST[connection.id]=connection
 
                 # handle each client in a separate thread
                 client_thread = threading.Thread(target=client_handler, args=(connection,))
@@ -284,12 +306,12 @@ def main():
             print("Server stopped listening for new connections")
 
             # check for connections
-            if len(connection_list) >= 1:
+            if len(CONNECTION_LIST) >= 1:
 
-                # close sockets and stop threads for each connection
-                for connection_object in connection_list:
+                # close all sockets and stop threads for each connection
+                for _, connection_object in CONNECTION_LIST.items():
                     end_connection(connection_object)
-                    print("All connection sockets closed and threads stopped for connect %s" , connection_object.id)
+                    print(f"All connection sockets closed and threads stopped for connection {connection_object.id} and client {connection_object.client_id}")
 
         except OSError as error:
             # operating system is preventing the socket from accepting connections.
