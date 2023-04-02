@@ -26,24 +26,46 @@ def generate_message(connection):
     """
 
     print("Starting to send messages to client!")
-    counter = 0
 
     # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
 
-        # try sending user input messages to peer
-        try:
-            data = counter
-            send_message(connection.conn, "Data", data, SERVER_NAME)
-            print(f"sent messages to client {connection.client_id} with payload: {data}")
-            counter += 1
+        # get connection state from inbound message handlers before sending / continuing data stream
+        if connection.state is None:
+            pass
 
-            # send an incrementing counter every 1 second to server
-            time.sleep(1)
+        elif connection.state == "reconnected":
+            # try sending user input messages to peer
+            try:
+                # increment last recieved number
+                connection.last_num_recv += 1
 
-        except OSError:
-            print("Unable to send messages over the socket. Suspending generate_message")
-            break
+                
+                send_message(connection.conn, "Data", connection.last_num_recv, SERVER_NAME)
+                print(f"sent messages to client {connection.client_id} with payload: {connection.last_num_recv}")
+
+                # send an incrementing counter every 1 second to server
+                time.sleep(1)
+
+
+            except OSError:
+                print("Unable to send messages over the socket. Suspending generate_message")
+                break
+        else:
+            # try sending user input messages to peer
+            try:
+                send_message(connection.conn, "Data", connection.last_num_sent, SERVER_NAME)
+                print(f"sent messages to client {connection.client_id} with payload: {connection.last_num_sent}")
+
+                # send an incrementing counter every 1 second to server
+                time.sleep(1)
+
+                # increment last number sent
+                connection.last_num_sent += 1
+
+            except OSError:
+                print("Unable to send messages over the socket. Suspending generate_message")
+                break
 
 def end_connection(connection):
     """
@@ -103,6 +125,8 @@ def greeting_message_handler(connection, message):
     Function to handle client greeting message
     """
     try:
+        # set connection state
+        connection.state = "initial_connection"
 
         # assign client_id for connection
         connection.client_id = message.sender_id
@@ -122,26 +146,42 @@ def reconnection_attempt_message_handler(connection, message):
     connection.client_id = message.sender_id
     print(f"reconnection attempt from client {connection.client_id}")
 
+    # boolean to see if connection object exists
+    connection_id_not_found = True
+
     # Loop over connections connections in data store
     for _, connection_object in CONNECTION_LIST.items():
 
         # check if the requested connection_id is there
-        if connection_object.id == message.data:
+        if connection_object.id == message.data[0]:
+
+            # set boolean as connection id from message found in storage
+            connection_id_not_found =  False
 
             # get current timestamp
             current_time = time.time()
 
             # see if the last heartbeat ack was recieved within the reconnection window
             if current_time - connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
+
+                # pick up stream where it left off
+                connection.last_num_sent = connection_object.last_num_sent
                 print("successful reconnect attempt")
 
+                # set connection condition
+                connection.state = "reconnected"
+
+                # set last message recieved
+                connection.last_num_recv = message.data[1]
+
             else:
+                
                 print(f"reconnection request from {message.sender_id} rejected because the reconnection window timed out")
                 send_message(connection.conn, "Reconnect_Rejected", "timeout", send_message)
 
-        else:
-            print(f"reconnect request from {message.sender_id} was rejected as there is no record of the provided connection_id state")
-            send_message(connection.conn, "Reconnect_Rejected", "no_recorded_state", send_message)
+    if connection_id_not_found:
+        print(f"reconnect request from {message.sender_id} was rejected as there is no record of the provided connection_id state")
+        send_message(connection.conn, "Reconnect_Rejected", "no_recorded_state", send_message)
 
 def heartbeat_ack_message_handler(connection):
     """
