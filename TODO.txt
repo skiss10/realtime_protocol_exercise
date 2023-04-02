@@ -3,9 +3,11 @@ update reconnection logic so the new object is a copy of hte old connection obje
 
 0.01) clean up print statements and comments in files
 
+0.015) refactor code ... lots of ugliness in reconnection handlers, etc.
+
 0.02) add a session object to each connection to keep track of the messages sent to clients
 
-0.03) add either a new function on the server or as part of the connection method to delete storage and prevent reconencts if reconnect after ___ seconds
+0.03) add either a new function on the server or as part of the connection method to delete storage and prevent reconencts if reconnect after ___ seconds. Thsi will run in parallel to the client thread
 
 0.04) Update testingproxy.py and testingserver.py to handle server failures ( in prep of redis storage vs inmemorydatastore )
 
