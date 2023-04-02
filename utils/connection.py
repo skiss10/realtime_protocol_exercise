@@ -19,10 +19,12 @@ class Connection:
         self.addr = None
         self.connection_thread_stopper = None
         self.last_heartbeat_ack = None
-        self.state = None
+        self.state = None # initial_connection, disconnected, reconnected
         self.client_id = None
         self.session_storage = None
         self.threading_lock = None
+        self.last_num_sent = 0
+        self.last_num_recv = None
 
     def detect_heartbeat(self):
         """
