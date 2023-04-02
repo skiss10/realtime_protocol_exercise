@@ -91,6 +91,7 @@ def inbound_message_handler(connection):
                 connection.id = unserialized_message.data
 
             elif unserialized_message.name == "Data":
+                connection.last_num_recv = unserialized_message.data
                 print("recieved message from server with payload: %s", unserialized_message.data)
 
         # trigger error when thread can't read from socket
@@ -110,7 +111,7 @@ def attempt_reconnection(connection):
 
     # attempt to establish the same connection again
     try:
-        server_handler(connection.addr, connection.id)
+        server_handler(connection.addr, connection)
 
     # continue to try reconnection every 10 seconds
     except OSError:
@@ -143,7 +144,7 @@ def check_heartbeat(connection):
 
         time.sleep(1)
 
-def server_handler(peer_address, existing_connection_id = None):
+def server_handler(peer_address, former_connection = None):
     """
     Function to connection to a peer socket server
     """
@@ -159,14 +160,14 @@ def server_handler(peer_address, existing_connection_id = None):
             # set connection object peer address tuple
             connection.addr = peer_address
 
-            if existing_connection_id == None:
+            if former_connection is None:
                 # send gretting message to peer
                 send_message(connection.conn, "Greeting", "", CLIENT_NAME)
                 print("sent greeting message")
 
             else:
-                # send reconnect message to peer
-                send_message(connection.conn, "reconnect_attempt", existing_connection_id, CLIENT_NAME)
+                # send reconnect message to peer with previous connection_id and last message recieved
+                send_message(connection.conn, "reconnect_attempt", (former_connection.id, former_connection.last_num_recv), CLIENT_NAME)
                 print("sent reconnection message")
 
             # define variable to stop threads associated with peer connection
