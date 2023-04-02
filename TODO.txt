@@ -1,3 +1,6 @@
+update reconnection logic so the new object is a copy of hte old connection object
+
+
 0.01) clean up print statements and comments in files
 
 0.02) add a session object to each connection to keep track of the messages sent to clients
