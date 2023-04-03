@@ -1,5 +1,8 @@
-update reconnection logic so the new object is a copy of hte old connection object
+Sesions should stored globally and mapped connection id: to connection - update reconnection logic so the new object is a copy of hte old connection object (maybe?)
 
+update reconnection_attempt_message_handler to remove old connection from session store and update new connection with needed params from reconnection and old connection object
+
+Do this (different than current implementation):  the client must supply connection parameters that allow the server to continue the sequence starting with the first undelivered number.
 
 0.01) clean up print statements and comments in files
 
