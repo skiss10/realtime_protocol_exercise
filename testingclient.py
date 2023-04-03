@@ -65,10 +65,78 @@ def connection_handler(connection):
     inbound_message_thread.join()
     check_heartbeat_thread.join()
 
+def handle_greeting_ack(connection, unserialized_message):
+    """
+    Function to handle Greeting_ack messages
+    """
+
+    print("Received Greeting_ack")
+    print(f"connection_id from server is {unserialized_message.data}")
+    logging.info(f"Message - Recieved Greeting_ack over {connection.id}")
+    logging.info(f"Message - Connection_id from server is {unserialized_message.data}")
+
+    # assign connection id
+    connection.id = unserialized_message.data
+
+def handle_heartbeats(connection):
+    """
+    Function to handle heartbeat messages from server
+    """
+    
+    print(f"Received heartbeat at {time.time()}")
+    logging.info(f"Message - Received heartbeat over {connection.id}")
+
+    # send heartbeat_ack back to server
+    send_message(connection.conn, "Heartbeat_ack", "Heartbeat_ack", CLIENT_NAME)
+    print("Sent Heartbeat_ack")
+    logging.info(f"Message - Sent heartbeat_ack over {connection.id}")
+
+    # update last heartbeat timestamp
+    connection.last_heartbeat_ack = time.time()
+
+def handle_data(connection, unserialized_message):
+    """
+    Function to handle incoming data from server
+    """
+                
+    # gather newly recieved payload
+    uint32_num = unserialized_message.data
+
+    # add new uint32 number to connection uint32_numbers_recieved attribute
+    connection.uint32_numbers_recieved.append(uint32_num)
+    print(f"recieved message from server with payload: {uint32_num}")
+    logging.info(f"Message - Recieved message from server with payload: {uint32_num}")
+
+def handle_checksum(connection, unserialized_message):
+    """
+    Function to handle checksum messages from the server
+    """
+
+    # gather checksum from server
+    server_checksum = unserialized_message.data
+    print(f"Server sent checksum {server_checksum}")
+    logging.info(f"Checksum - Recieved checksum from server with payload: {server_checksum}")
+
+    # calculate checksum locally
+    local_checksum = calculate_checksum(connection.uint32_numbers_recieved)
+    logging.info(f"Checksum - Local checksum calculated as: {local_checksum}")
+    print(f"Locally calculated checksum is {local_checksum}")
+
+    # determine if checksums are equivalent
+    if local_checksum == server_checksum:
+        print(f"Transfer of uint32 numbers successful!")
+        logging.info(f"System - SUCCESS! local checksum and server checksum are equivalent")
+
+    # end connection
+    end_connection(connection)
+    sys.exit()
+
 def inbound_message_handler(connection):
     """
     Function to handle inbound messages from Server
     """
+
+    print("started inbound_message_handler...")
 
     # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
@@ -80,57 +148,19 @@ def inbound_message_handler(connection):
             # unserialize messages
             unserialized_message = pickle.loads(message)
 
+            # check if the messages is a Greeting_ack
+            if unserialized_message.name == "Greeting_ack":
+                handle_greeting_ack(connection, unserialized_message)
+        
+            if unserialized_message.name == "Data":
+                handle_data(connection, unserialized_message)
+            
             # check if the messages is a heartbeat
             if unserialized_message.name == "Heartbeat":
-                print(f"Received heartbeat at {time.time()}")
-                logging.info(f"Message - Received heartbeat over {connection.id}")
+                handle_heartbeats(connection)
 
-                # send heartbeat_ack back to server
-                send_message(connection.conn, "Heartbeat_ack", "Heartbeat_ack", CLIENT_NAME)
-                print("Sent Heartbeat_ack")
-                logging.info(f"Message - Sent heartbeat_ack over {connection.id}")
-
-                # update last heartbeat timestamp
-                connection.last_heartbeat_ack = time.time()
-
-            # check if the messages is a Greeting_ack
-            elif unserialized_message.name == "Greeting_ack":
-                print("Received Greeting_ack")
-                print(f"connection_id from server is {unserialized_message.data}")
-                logging.info(f"Message - Recieved Greeting_ack over {connection.id}")
-                logging.info(f"Message - Connection_id from server is {unserialized_message.data}")
-
-                # assign connection id
-                connection.id = unserialized_message.data
-
-            elif unserialized_message.name == "Data":
-                
-                # gather newly recieved payload
-                uint32_num = unserialized_message.data
-
-                # add new uint32 number to connection uint32_numbers_recieved attribute
-                connection.uint32_numbers_recieved.append(uint32_num)
-                print(f"recieved message from server with payload: {uint32_num}")
-                logging.info(f"Message - Recieved message from server with payload: {uint32_num}")
-
-            elif unserialized_message.name == "Checksum":
-                # gather checksum from server
-                server_checksum = unserialized_message.data
-                print(f"Server sent checksum {server_checksum}")
-                logging.info(f"Checksum - Recieved checksum from server with payload: {server_checksum}")
-
-                # calculate checksum locally
-                local_checksum = calculate_checksum(connection.uint32_numbers_recieved)
-                logging.info(f"Checksum - Local checksum calculated as: {local_checksum}")
-                print(f"Locally calculated checksum is {local_checksum}")
-
-                # determin if checksums are equivalent
-                if local_checksum == server_checksum:
-                    print(f"Transfer of uint32 numbers successful!")
-                    logging.info(f"System - SUCESS! local checksum and server checksum are equivalent")
-
-                    # end connection
-                    end_connection(connection)
+            if unserialized_message.name == "Checksum":
+                handle_checksum(connection, unserialized_message)
                     
         # trigger error when thread can't read from socket
         except OSError as error:
@@ -205,20 +235,21 @@ def server_handler(peer_address, former_connection = None):
             # set sequence length
             connection.sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
 
+            # define variable to stop threads associated with peer connection
+            connection.connection_thread_stopper = threading.Event()
+
             if former_connection is None:
                 # send gretting message to peer
                 send_message(connection.conn, "Greeting", connection.sequence_length, CLIENT_NAME)
                 print("sent greeting message")
-                logging.info(f"Message - Sent greeting message to Server at {peer_address}")
+                logging.info(f"Message - Sent greeting message to Server at {connection.addr}")
 
             else:
                 # send reconnect message to peer with previous connection_id and last message recieved
                 send_message(connection.conn, "reconnect_attempt", (former_connection.id, former_connection.uint32_numbers_recieved[-1]), CLIENT_NAME)
                 print("sent reconnection message")
-                logging.info(f"Message - Sent reconnection message to Server at {peer_address} with info in tuple of {former_connection.id} and {former_connection.uint32_numbers_recieved[-1]}")
+                logging.info(f"Message - Sent reconnection message to Server at {connection.addr} with info in tuple of {former_connection.id} and {former_connection.uint32_numbers_recieved[-1]}")
 
-            # define variable to stop threads associated with peer connection
-            connection.connection_thread_stopper = threading.Event()
 
             # spawn a new thread to handle inbound messages from the peer
             connection_handler_thread = threading.Thread(target=connection_handler, args=(connection,))
