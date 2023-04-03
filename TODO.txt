@@ -1,5 +1,4 @@
-
-Update messages sent to client to be uint32 numbers and a hash
+handle reconnections with new send_sequence function
 
 0.015) refactor code ... lots of ugliness in reconnection handlers, etc.
 
@@ -9,7 +8,7 @@ Remove "with connection.threading_lock" from check_heartbeat_ack in testingserve
 
 updated code to handle multiple disconnections in series (one after another)
 
-
+Figure out why the client isn't always recieving the first uint32 number
 
 
 
