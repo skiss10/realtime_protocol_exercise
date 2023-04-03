@@ -9,6 +9,7 @@ import uuid
 import pickle
 import logging
 import sys
+import struct
 
 from utils.connection import Connection
 from utils.session_store import InMemoryStore
@@ -135,6 +136,10 @@ def greeting_message_handler(connection, message):
         # set sequence length
         connection.sequence_length = message.data
         logging.debug(f"{SERVER_NAME} Server - Connection - sequence_length for connection {connection.id} to {connection.client_id} updated to {connection.sequence_length}")
+
+        # generate uint32 numbers to be sent over connection
+        connection.queued_uint32_numbers = [struct.pack('>I', num) for num in range(1, connection.sequence_length+1)]
+        logging.debug(f"{SERVER_NAME} Server - Sequence - Created list of incrementing uint32 numbers for connection {connection.id} to {connection.client_id}. list: {connection.queued_uint32_numbers}")
 
         # set connection state
         connection.state = "initial_connection"
