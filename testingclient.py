@@ -184,7 +184,7 @@ def server_handler(peer_address, former_connection = None):
 
             else:
                 # send reconnect message to peer with previous connection_id and last message recieved
-                send_message(connection.conn, "reconnect_attempt", (former_connection.id, former_connection.last_num_recv), CLIENT_NAME)
+                send_message(connection.conn, "reconnect_attempt", (former_connection.id, former_connection.last_num_recv + 1), CLIENT_NAME)
                 print("sent reconnection message")
                 logging.info(f"{CLIENT_NAME} Client - Message - Sent reconnection message to Server at {peer_address} with info in tuple of {former_connection.id} and {former_connection.last_num_recv}")
 

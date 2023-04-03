@@ -38,15 +38,15 @@ def generate_message(connection):
         elif connection.state == "reconnected":
             # try sending user input messages to peer
             try:
-                # increment last recieved number
-                connection.last_num_recv += 1
-
-                send_message(connection.conn, "Data", connection.last_num_recv, SERVER_NAME)
-                print(f"sent messages to client {connection.client_id} with payload: {connection.last_num_recv}")
-                logging.info(f"{SERVER_NAME} Server - Messages -sending message to {connection.client_id} over connection {connection.last_num_recv}")
+                send_message(connection.conn, "Data", connection.continue_stream_from, SERVER_NAME)
+                print(f"sent messages to client {connection.client_id} with payload: {connection.continue_stream_from}")
+                logging.info(f"{SERVER_NAME} Server - Messages -sending message to {connection.client_id} over connection {connection.continue_stream_from}")
 
                 # send an incrementing counter every 1 second to server
                 time.sleep(1)
+
+                # increment last number sent
+                connection.continue_stream_from += 1 #TODO fix this ugliness
 
             except OSError:
                 print("Unable to send messages over the socket. Suspending generate_message")
@@ -126,13 +126,13 @@ def greeting_message_handler(connection, message):
     Function to handle client greeting message
     """
     try:
-        # set connection state
-        connection.state = "initial_connection"
-        logging.debug(f"{SERVER_NAME} Server - Connection - connection state for {connection.id} updated to {connection.state}")
-
         # assign client_id for connection
         connection.client_id = message.sender_id
         logging.debug(f"{SERVER_NAME} Server - Connection - client_id for {connection.id} updated to {connection.client_id}")
+
+        # set connection state
+        connection.state = "initial_connection"
+        logging.debug(f"{SERVER_NAME} Server - Connection - connection state for {connection.id} updated to {connection.state}")
 
         # send greeting ack response with connection id inclueded
         send_message(connection.conn, "Greeting_ack", connection.id, SERVER_NAME)
@@ -173,20 +173,23 @@ def reconnection_attempt_message_handler(connection, message):
             # see if the last heartbeat ack was recieved within the reconnection window
             if current_time - connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
 
-                # update last_heartbeat so check_session_store doesn't remove old connection until connection data is transfered
-                connection_object.last_heartbeat_ack = time.time()
+                # update last_heartbeat so check_session_store removes the connection sooner but gives reconnection_attempt_message_handler enough time to get needed data
+                connection_object.last_heartbeat_ack = time.time() - 58
 
                 # pick up stream where it left off
                 connection.last_num_sent = connection_object.last_num_sent
                 print("successful reconnect attempt")
                 logging.info(f"{SERVER_NAME} Server - Reconnection - Successful reconnection attempt from {message.sender_id}")
 
+                # configure next message to send
+                connection.continue_stream_from = message.data[1]
+                logging.debug(f"{SERVER_NAME} Server - Reconnection - Last Reported Number received by {message.sender_id} was {message.data[1]}")
+
+                # set connection cleint_id
+                connection.client_id = message.sender_id
+
                 # set connection condition
                 connection.state = "reconnected"
-
-                # set last message recieved
-                connection.last_num_recv = message.data[1]
-                logging.debug(f"{SERVER_NAME} Server - Reconnection - Last Reported Number received by {message.sender_id} was {message.data[1]}")
 
             else:
                 
@@ -268,7 +271,7 @@ def check_heartbeat_ack(connection):
     Function to ensure heartbeats are being recieved from client
     """
 
-    # Continuous loop that considers status of peer client threads
+    # Continuous loop that considers status of other client threads
     while not connection.connection_thread_stopper.is_set():
 
         # get current timestamp
@@ -301,21 +304,24 @@ def send_heartbeat(connection):
     to the client
     """
 
-    # Continuous loop that considers status of peer client threads
+    # Continuous loop that considers status of other client threads
     while not connection.connection_thread_stopper.is_set():
 
-        # send heartbeats
-        try:
-            send_message(connection.conn, "Heartbeat" , "", SERVER_NAME)
-            print(f"Sent Heartbeat to {connection.client_id}")
-            logging.debug(f"{SERVER_NAME} Server - Heartbeat - Sent Heartbeat to {connection.client_id}")
-            time.sleep(HEARTBEAT_INTERVAL)
+        # check session state before sending heartbeats
+        if connection.state in ['initial_connection', 'reconnected']:
 
-        # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
-        except OSError as error:
-            print("OSError when trying to send heartbeat. Suspending send_heartbeat function")
-            logging.error(f"{SERVER_NAME} Server - Heartbeat - Error {error} when trying to send heartbeat over {connection.client_id}. Suspending send_heartbeat function")
-            break
+            # send heartbeats
+            try:
+                send_message(connection.conn, "Heartbeat" , "", SERVER_NAME)
+                print(f"Sent Heartbeat to {connection.client_id}")
+                logging.debug(f"{SERVER_NAME} Server - Heartbeat - Sent Heartbeat to {connection.client_id}")
+                time.sleep(HEARTBEAT_INTERVAL)
+
+            # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
+            except OSError as error:
+                print("OSError when trying to send heartbeat. Suspending send_heartbeat function")
+                logging.error(f"{SERVER_NAME} Server - Heartbeat - Error {error} when trying to send heartbeat over {connection.client_id}. Suspending send_heartbeat function")
+                break
 
 
 def check_session_store():
@@ -326,7 +332,7 @@ def check_session_store():
     print("Started check_session_store")
     logging.info(f"{SERVER_NAME} Server - Storage - check_session_store is running")
 
-    # Continuous loop that considers status of peer client threads
+    # Continuous loop that considers status of other client threads
     while True:
 
         # get current timestamp
