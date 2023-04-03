@@ -8,6 +8,7 @@ import time
 import uuid
 import pickle
 import logging
+import sys
 
 from utils.connection import Connection
 from utils.session_store import InMemoryStore
@@ -129,15 +130,19 @@ def greeting_message_handler(connection, message):
     try:
         # assign client_id for connection
         connection.client_id = message.sender_id
-        logging.debug(f"{SERVER_NAME} Server - Connection - client_id for {connection.id} updated to {connection.client_id}")
+        logging.debug(f"{SERVER_NAME} Server - Connection - client_id for connection {connection.id} updated to {connection.client_id}")
+
+        # set sequence length
+        connection.sequence_length = message.data
+        logging.debug(f"{SERVER_NAME} Server - Connection - sequence_length for connection {connection.id} to {connection.client_id} updated to {connection.sequence_length}")
 
         # set connection state
         connection.state = "initial_connection"
-        logging.debug(f"{SERVER_NAME} Server - Connection - connection state for {connection.id} updated to {connection.state}")
+        logging.debug(f"{SERVER_NAME} Server - Connection - connection state for connection {connection.id} updated to {connection.state}")
 
         # send greeting ack response with connection id inclueded
         send_message(connection.conn, "Greeting_ack", connection.id, SERVER_NAME)
-        logging.info(f"{SERVER_NAME} Server - Message - Greeting_ack sent over {connection.id} to {connection.client_id}")
+        logging.info(f"{SERVER_NAME} Server - Message - Greeting_ack sent over connection {connection.id} to {connection.client_id}")
 
     except OSError as error:
         print("OSError hit attemptng send Greeting_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
@@ -446,6 +451,7 @@ def main():
             if error.errno == 22:
                 print("OS is preventing the socket from accepting connections.")
                 logging.error(f"{SERVER_NAME} Server - System - OS is preventing the socket from accepting new connections.")
+                sys.exit()
 
 if __name__ == "__main__":
 
