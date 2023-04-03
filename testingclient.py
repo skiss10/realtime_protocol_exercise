@@ -242,7 +242,7 @@ if __name__ == "__main__":
         format='[%(asctime)s] %(levelname)s: %(message)s',
         datefmt='%m-%d %H:%M:%S'
         )
-    
+
     logging.info(f"===== Client - starting {CLIENT_NAME} =====")
 
     # start client main
