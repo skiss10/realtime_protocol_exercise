@@ -23,7 +23,7 @@ SERVER_NAME = str(uuid.uuid4())
 # define server interface with memory store
 SESSION_STORAGE = InMemoryStore()
 
-def send_sequence(connection):
+def send_sequence_old(connection):
     """
     Function to generate messages to peer
     """
@@ -38,20 +38,88 @@ def send_sequence(connection):
         if connection.state == "initial_connection":
             # try sending user input messages to peer
             try:
-                send_message(connection.conn, "Data", connection.last_num_sent, SERVER_NAME)
-                print(f"sent messages to client {connection.client_id} with payload: {connection.last_num_sent}")
-                logging.info(f"{SERVER_NAME} Server - Message- Sent message to client {connection.client_id} with payload: {connection.last_num_sent}")
+                send_message(connection.conn, "Data", connection.queued_uint32_numbers[0], SERVER_NAME)
+                print(f"sent messages to client {connection.client_id} with payload: {connection.connection.queued_uint32_numbers[0]}")
+                logging.info(f"{SERVER_NAME} Server - Message - Sent message to client {connection.client_id} with payload: {connection.connection.queued_uint32_numbers[0]}")
 
                 # send an incrementing counter every 1 second to server
                 time.sleep(1)
 
                 # increment last number sent
-                connection.last_num_sent += 1        
+                connection.last_num_sent += 1
 
             except OSError:
                 print("Unable to send messages over the socket. Suspending generate_message")
                 logging.error(f"{SERVER_NAME} Server - Message - Unable to send messages over the socket. Suspending generate_message")
                 break
+
+        elif connection.state == "reconnected":
+            # try sending user input messages to peer
+            try:
+                send_message(connection.conn, "Data", connection.continue_stream_from, SERVER_NAME)
+                print(f"sent messages to client {connection.client_id} with payload: {connection.continue_stream_from}")
+                logging.info(f"{SERVER_NAME} Server - Messages -sending message to {connection.client_id} over connection {connection.continue_stream_from}")
+
+                # send an incrementing counter every 1 second to server
+                time.sleep(1)
+
+                # increment last number sent
+                connection.continue_stream_from += 1 #TODO fix this ugliness
+
+            except OSError:
+                print("Unable to send messages over the socket. Suspending generate_message")
+                logging.error(f"{SERVER_NAME} Server - Message - Unable to send messages over the socket. Suspending generate_message")
+                break
+        else:
+            pass
+
+def send_sequence(connection):
+    """
+    Function to generate messages to peer
+    """
+
+    print("Starting to send sequence to client...")
+    logging.info(f"{SERVER_NAME} Server - Messages - Started thread to send uint32 sequence to client {connection.client_id} over connection {connection.id}")
+
+    # set break flag
+    break_flag = False
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set() and not break_flag:
+
+        # get connection state from inbound message handlers before sending / continuing data stream
+        if connection.state == "initial_connection":
+
+            # loop over all uint_32 numbers that we need to send
+            for num in connection.all_uint32_numbers:
+
+                try:
+                    # send uint32 number
+                    send_message(connection.conn, "Data", num, SERVER_NAME)
+                    print(f"sent messages to client {connection.client_id} with payload: {num}")
+                    logging.info(f"{SERVER_NAME} Server - Message - Sent message to client {connection.client_id} with payload: {num}")
+
+                    # update sent numbers over connection
+                    connection.sent_uint32_numbers.append(num)
+
+                    # send next number in 1 second
+                    time.sleep(1)
+
+                except OSError:
+                    print("Unable to send messages over the socket. Suspending generate_message")
+                    logging.error(f"{SERVER_NAME} Server - Message - Unable to send messages over the socket. Suspending generate_message")
+                    break_flag = True
+                    break
+            
+            # calculate checksum
+            checksum = calculate_checksum(connection.all_uint32_numbers)
+
+            # send checksum number
+            send_message(connection.conn, "Checksum", checksum, SERVER_NAME)
+            print(f"sent checksum to client {connection.client_id} with payload: {checksum}")
+            logging.info(f"{SERVER_NAME} Server - Message - Sent Checksum message to client {connection.client_id} with payload: {checksum}")
+
+            end_connection(connection)
 
         elif connection.state == "reconnected":
             # try sending user input messages to peer
@@ -138,8 +206,8 @@ def greeting_message_handler(connection, message):
         logging.debug(f"{SERVER_NAME} Server - Connection - sequence_length for connection {connection.id} to {connection.client_id} updated to {connection.sequence_length}")
 
         # generate uint32 numbers to be sent over connection
-        connection.queued_uint32_numbers = [struct.pack('>I', num) for num in range(1, connection.sequence_length+1)]
-        logging.debug(f"{SERVER_NAME} Server - Sequence - Created list of incrementing uint32 numbers for connection {connection.id} to {connection.client_id}. list: {connection.queued_uint32_numbers}")
+        connection.all_uint32_numbers = [struct.pack('>I', num) for num in range(1, connection.sequence_length+1)]
+        logging.debug(f"{SERVER_NAME} Server - Sequence - Created list of incrementing uint32 numbers for connection {connection.id} to {connection.client_id}")
 
         # set connection state
         connection.state = "initial_connection"
