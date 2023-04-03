@@ -1,5 +1,6 @@
 import socket
 import threading
+import sys
 
 from utils.connection import Connection
 
@@ -132,7 +133,7 @@ def main():
             print(f'Conected to server {server_address[0]}:{server_address[1]}')
 
             # create server connection object
-            server_connection = Connection(server_socket)
+            server_connection = Connection(server_socket, server_address)
             server_connection.addr = server_address
             server_connection.connection_thread_stopper = threading.Event()
             server_connection.id = "SERVER_CONNECTION_FROM_PROXY"
@@ -141,7 +142,7 @@ def main():
             connection_list = [server_connection]
 
             # create client_connection object
-            client_connection = Connection(server_socket)
+            client_connection = Connection(proxy_server_socket, proxy_server_address)
             client_connection.conn = client_socket
             client_connection.addr = client_address
             client_connection.connection_thread_stopper = threading.Event()
@@ -168,6 +169,7 @@ def main():
             for connection_object in connection_list:
                 end_connection(connection_object)
                 print("All connection sockets closed and threads stopped for connect %s" , connection_object.id)
+        sys.exit()
 
 if __name__ == '__main__':
     main()
