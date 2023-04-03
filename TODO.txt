@@ -16,7 +16,7 @@ Do this (different than current implementation):  the client must supply connect
 
 Remove "with connection.threading_lock" from check_heartbeat_ack in testingserver.py
 
-updated code to handle multiple disconnections
+updated code to handle multiple disconnections in series (one after another)
 
 
 
