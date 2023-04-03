@@ -15,7 +15,7 @@ Do this (different than current implementation):  the client must supply connect
 0.04) Update testingproxy.py and testingserver.py to handle server failures ( in prep of redis storage vs inmemorydatastore )
 
 
-
+Remove "with connection.threading_lock" from check_heartbeat_ack in testingserver.py
 
 
 
