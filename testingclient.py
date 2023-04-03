@@ -8,6 +8,8 @@ import time
 import uuid
 import pickle
 import logging
+import sys
+import random
 
 from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
 from utils.message_sender import send_message
@@ -177,9 +179,12 @@ def server_handler(peer_address, former_connection = None):
             # set connection object peer address tuple
             connection.addr = peer_address
 
+            # set sequence length
+            connection.sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
+
             if former_connection is None:
                 # send gretting message to peer
-                send_message(connection.conn, "Greeting", "", CLIENT_NAME)
+                send_message(connection.conn, "Greeting", connection.sequence_length, CLIENT_NAME)
                 print("sent greeting message")
                 logging.info(f"{CLIENT_NAME} Client - Message - Sent greeting message to Server at {peer_address}")
 
@@ -210,7 +215,9 @@ def main():
 
     # define peer location
     host = '127.0.0.1'
-    port = 12332
+
+    # handle input paramater for port to connect to
+    port = int(sys.argv[1])
 
     # peer address tuple
     peer_address = (host,port)
