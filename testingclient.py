@@ -104,9 +104,36 @@ def inbound_message_handler(connection):
                 connection.id = unserialized_message.data
 
             elif unserialized_message.name == "Data":
+                
+                # gather newly recieved payload
+                uint32_num = unserialized_message.data
                 connection.last_num_recv = unserialized_message.data
+
+                # add new uint32 number to connection all_uint32_numbers attribute
+                connection.all_uint32_numbers.append(uint32_num)
                 print(f"recieved message from server with payload: {unserialized_message.data}")
                 logging.info(f"{CLIENT_NAME} Client - Message - Recieved message from server with payload: {unserialized_message.data}")
+
+            elif unserialized_message.name == "Checksum":
+                # gather checksum from server
+                server_checksum = unserialized_message.data
+                print(f"Server sent checksum {server_checksum}")
+                logging.info(f"{CLIENT_NAME} Client - Checksum - Recieved checksum from server with payload: {server_checksum}")
+
+                # calculate checksum locally
+                local_checksum = calculate_checksum(connection.all_uint32_numbers)
+                logging.info(f"{CLIENT_NAME} Client - Checksum - Local checksum calculated as: {local_checksum}")
+                print(f"Locally calculated checksum is {local_checksum}")
+
+                # determin if checksums are equivalent
+                if local_checksum == server_checksum:
+                    print(f"Transfer of uint32 numbers successful!")
+                    logging.info(f"{CLIENT_NAME} Client - System - SUCESS! local checksum and server checksum are equivalent")
+
+                    # end connection
+                    end_connection(connection)
+                    
+
 
 
         # trigger error when thread can't read from socket
