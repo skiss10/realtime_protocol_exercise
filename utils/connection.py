@@ -23,10 +23,11 @@ class Connection:
         self.client_id = None
         self.threading_lock = threading.Lock()
         self.sequence_length = None
-        self.queued_uint32_numbers = None
-        self.sent_uint32_numbers = None
+        self.all_uint32_numbers = []
+        self.sent_uint32_numbers = []
         self.uint32_numbers_recieved = None
+        self.checksum = None
         self.continue_stream_from = None
-        self.last_num_sent = None #TODO potentially remove this
+        self.last_num_sent = 0 #TODO potentially remove this
         self.last_num_recv = None #TODO potentially remove this
 
