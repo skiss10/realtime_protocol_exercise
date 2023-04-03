@@ -12,6 +12,7 @@ import logging
 from utils.connection import Connection
 from utils.session_store import InMemoryStore
 from utils.message_sender import send_message
+from utils.checksum import calculate_checksum
 from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, RECONNECT_WINDOW
 
 # create a unique server name
@@ -323,7 +324,6 @@ def send_heartbeat(connection):
                 logging.error(f"{SERVER_NAME} Server - Heartbeat - Error {error} when trying to send heartbeat over {connection.client_id}. Suspending send_heartbeat function")
                 break
 
-
 def check_session_store():
     """
     Function to ensure heartbeats are being recieved from client
@@ -431,6 +431,7 @@ def main():
 
         except KeyboardInterrupt:
             print("Server stopped listening for new connections")
+            logging.info(f"{SERVER_NAME} Server - System - Stopped due to Keyboard Interrupt")
 
             # check for connections
             if len(SESSION_STORAGE.store) >= 1:

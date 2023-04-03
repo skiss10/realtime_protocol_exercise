@@ -12,6 +12,7 @@ import logging
 from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
 from utils.message_sender import send_message
 from utils.connection import Connection
+from utils.checksum import calculate_checksum
 
 CLIENT_NAME = str(uuid.uuid4())
 
@@ -200,6 +201,7 @@ def server_handler(peer_address, former_connection = None):
         # stop threads and close connection if keyboard interrupt
         except KeyboardInterrupt:
             end_connection(connection)
+            logging.info(f"{CLIENT_NAME} Client - System - Stopped due to Keyboard Interrupt")
 
 def main():
     """
