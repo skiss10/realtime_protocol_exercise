@@ -93,7 +93,7 @@ def inbound_message_handler(connection):
             # check if the messages is a Greeting_ack
             elif unserialized_message.name == "Greeting_ack":
                 print("Received Greeting_ack")
-                print("connection_id from server is %s", unserialized_message.data)
+                print(f"connection_id from server is {unserialized_message.data}")
                 logging.info(f"{CLIENT_NAME} Client - Message - Recieved Greeting_ack over {connection.id}")
                 logging.info(f"{CLIENT_NAME} Client - Message - Connection_id from server is {unserialized_message.data}")
 
@@ -102,7 +102,7 @@ def inbound_message_handler(connection):
 
             elif unserialized_message.name == "Data":
                 connection.last_num_recv = unserialized_message.data
-                print("recieved message from server with payload: %s", unserialized_message.data)
+                print(f"recieved message from server with payload: {unserialized_message.data}")
                 logging.info(f"{CLIENT_NAME} Client - Message - Recieved message from server with payload: {unserialized_message.data}")
 
 
@@ -222,9 +222,9 @@ def main():
         logging.info(f"{CLIENT_NAME} Client - System - Unable to connect to server. Has the Server and/or proxy server been started?")
 
 if __name__ == "__main__":
-    
+
     # print client name to console
-    print(CLIENT_NAME)
+    print(f"===== Client - starting {CLIENT_NAME} =====")
 
     # Configure logging
     logging.basicConfig(
@@ -233,5 +233,8 @@ if __name__ == "__main__":
         format='[%(asctime)s] %(levelname)s: %(message)s',
         datefmt='%m-%d %H:%M:%S'
         )
+    
+    logging.info(f"===== Client - starting {CLIENT_NAME} =====")
+
     # start client main
     main()
