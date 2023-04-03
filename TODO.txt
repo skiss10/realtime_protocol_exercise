@@ -1,16 +1,7 @@
-Sesions should stored globally and mapped connection id: to connection - update reconnection logic so the new object is a copy of hte old connection object (maybe?)
 
-update reconnection_attempt_message_handler to remove old connection from session store and update new connection with needed params from reconnection and old connection object
-
-Do this (different than current implementation):  the client must supply connection parameters that allow the server to continue the sequence starting with the first undelivered number.
-
-0.01) clean up print statements and comments in files
+Update messages sent to client to be uint32 numbers and a hash
 
 0.015) refactor code ... lots of ugliness in reconnection handlers, etc.
-
-0.02) add a session object to each connection to keep track of the messages sent to clients
-
-0.03) add either a new function on the server or as part of the connection method to delete storage and prevent reconencts if reconnect after ___ seconds. Thsi will run in parallel to the client thread
 
 0.04) Update testingproxy.py and testingserver.py to handle server failures ( in prep of redis storage vs inmemorydatastore )
 
