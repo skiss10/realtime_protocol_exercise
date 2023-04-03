@@ -27,4 +27,6 @@ class Connection:
         self.requested_sequence_length = None
         self.queued_uint32_numbers = None
         self.sent_uint32_numbers = None
+        self.uint32_numbers_recieved = None
+        self.continue_stream_from = None
 
