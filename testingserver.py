@@ -23,20 +23,35 @@ SERVER_NAME = str(uuid.uuid4())
 # define server interface with memory store
 SESSION_STORAGE = InMemoryStore()
 
-def generate_message(connection):
+def send_sequence(connection):
     """
     Function to generate messages to peer
     """
 
-    print("Starting to send messages to client!")
-    logging.info(f"{SERVER_NAME} Server - Messages - Started sending messages to client {connection.client_id} over connection {connection.id}")
+    print("Starting to send sequence to client...")
+    logging.info(f"{SERVER_NAME} Server - Messages - Started thread to send uint32 sequence to client {connection.client_id} over connection {connection.id}")
 
     # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
 
         # get connection state from inbound message handlers before sending / continuing data stream
-        if connection.state is None:
-            pass
+        if connection.state == "initial_connection":
+            # try sending user input messages to peer
+            try:
+                send_message(connection.conn, "Data", connection.last_num_sent, SERVER_NAME)
+                print(f"sent messages to client {connection.client_id} with payload: {connection.last_num_sent}")
+                logging.info(f"{SERVER_NAME} Server - Message- Sent message to client {connection.client_id} with payload: {connection.last_num_sent}")
+
+                # send an incrementing counter every 1 second to server
+                time.sleep(1)
+
+                # increment last number sent
+                connection.last_num_sent += 1        
+
+            except OSError:
+                print("Unable to send messages over the socket. Suspending generate_message")
+                logging.error(f"{SERVER_NAME} Server - Message - Unable to send messages over the socket. Suspending generate_message")
+                break
 
         elif connection.state == "reconnected":
             # try sending user input messages to peer
@@ -56,22 +71,7 @@ def generate_message(connection):
                 logging.error(f"{SERVER_NAME} Server - Message - Unable to send messages over the socket. Suspending generate_message")
                 break
         else:
-            # try sending user input messages to peer
-            try:
-                send_message(connection.conn, "Data", connection.last_num_sent, SERVER_NAME)
-                print(f"sent messages to client {connection.client_id} with payload: {connection.last_num_sent}")
-                logging.info(f"{SERVER_NAME} Server - Message- Sent message to client {connection.client_id} with payload: {connection.last_num_sent}")
-
-                # send an incrementing counter every 1 second to server
-                time.sleep(1)
-
-                # increment last number sent
-                connection.last_num_sent += 1
-
-            except OSError:
-                print("Unable to send messages over the socket. Suspending generate_message")
-                logging.error(f"{SERVER_NAME} Server - Message - Unable to send messages over the socket. Suspending generate_message")
-                break
+            pass
 
 def end_connection(connection):
     """
@@ -115,8 +115,8 @@ def client_handler(connection):
     logging.debug(f"{SERVER_NAME} Server - Started check_heartbeat_ack thread for connection {connection.id}")
 
     # spawn a new thread to send messages to the peer
-    message_thread = threading.Thread(target=generate_message, args=(connection,))
-    message_thread.start()
+    send_sequence_thread = threading.Thread(target=send_sequence, args=(connection,))
+    send_sequence_thread.start()
     logging.debug(f"{SERVER_NAME} Server - Started generate_message thread for connection {connection.id}")
 
     # spawn a new thread to send heartbeats to the client
