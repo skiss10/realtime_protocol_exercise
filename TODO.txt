@@ -1,8 +1,15 @@
+
+figure out why we still aren't recieving the first message soemtimes...
+
+Handle reconnection timeout logic
+
 test / handle multiple reconnections
 
 figure out if new conenction_id is being sent to client after reconnection
 
 Determine if htere is more we need to map from old connection to new connection
+
+shorten logging statements and print statements
 
 0.015) refactor code ... lots of ugliness in reconnection handlers, etc.
 
