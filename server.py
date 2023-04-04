@@ -23,105 +23,6 @@ SERVER_NAME = str(uuid.uuid4())
 # define server interface with memory store
 SESSION_STORAGE = InMemoryStore()
 
-def send_checksum(connection):
-    """
-    Function to send checksum to client
-    """
-
-    # calculate checksum
-    checksum = calculate_checksum(connection.sent_uint32_numbers)
-
-    # send checksum number
-    send_message(connection.conn, "Checksum", checksum, SERVER_NAME)
-
-    # log checksum
-    print(f"checksum - sent checksum: {checksum} to client {connection.client_id}")
-    logging.info(f" checksum - sent checksum: {checksum} to client {connection.client_id}")
-
-    # end the connection after sending checksum
-    end_connection(connection)
-
-def send_sequence(connection):
-    """
-    Function to generate messages to peer
-    """
-
-    print(f"sequence - started sending sequence to client {connection.client_id}")
-    logging.info(f" sequence - started sending sequence to client {connection.client_id}")
-
-    # continuous loop contingent on status of connection's threads
-    while not connection.connection_thread_stopper.is_set():
-
-        # check connection state before sending / continuing data stream
-        if connection.state == "initial_connection":
-
-            try:
-
-                # loop over all numbers we need to send
-                for num in connection.all_uint32_numbers:
-
-                    # send next number in 1 second
-                    time.sleep(1)
-
-                    # send uint32 number
-                    send_message(connection.conn, "Data", num, SERVER_NAME)
-
-                    # log message sent
-                    print(f"sequence - sent {num} to client {connection.client_id}")
-                    logging.info(f" sequence - sent {num} to client {connection.client_id}")
-
-                    # update sent numbers over this connection
-                    connection.sent_uint32_numbers.append(num)
-
-            except OSError:
-
-                # log error
-                print("system - Unable to send messages over the socket")
-                print(f"system - suspending generate_message")
-                logging.error(f"system - Unable to send messages over the socket")
-                logging.error(f"system - suspending generate_message")
-
-                # suspending generate_message thread / function
-                break
-            
-            # send checksum 
-            send_checksum(connection)
-
-        elif connection.state == "reconnected":
-
-            # try sending user input messages to peer
-            try:
-
-                # loop over numbers queued to send
-                for num in connection.queued_uint32_numbers:
-
-                    # send next number in 1 second
-                    time.sleep(1)
-
-                    # send next uint32 number
-                    send_message(connection.conn, "Data", num, SERVER_NAME)
-
-                    # log message sent
-                    print(f"sequence - sent {num} to client {connection.client_id}")
-                    logging.info(f" sequence - sent {num} to client {connection.client_id}")
-
-                    # add recently sent uint32 number to sent_uint32_numbers for connection
-                    connection.sent_uint32_numbers.append(num)
-
-            except OSError:
-
-                # log error
-                print("system - Unable to send messages over the socket")
-                print(f"system - suspending generate_message")
-                logging.error(f"system - Unable to send messages over the socket")
-                logging.error(f"system - suspending generate_message")
-
-                # suspending generate_message thread / function
-                break
-
-            # send checksum
-            send_checksum(connection)
-
 def end_connection(connection):
     """
     Function to stop all threads and close all sockets for a given connection
@@ -171,38 +72,23 @@ def end_connection(connection):
         print(f"system - err {error} conn id {connection.id} when closing sockets")
         logging.error(f"system - err {error} conn id {connection.id} when closing sockets")
 
-def client_handler(connection):
+def send_checksum(connection):
     """
-    Handler function for all inbound clients
+    Function to send checksum to client
     """
 
-    # spawn a new thread to handle inbound messages from client
-    inbound_messages_thread = threading.Thread(target=inbound_message_handler, args=(connection,))
-    inbound_messages_thread.start()
+    # calculate checksum
+    checksum = calculate_checksum(connection.sent_uint32_numbers)
 
-    # log starting thread
-    logging.debug(f"system - conn id {connection.id} started inbound_message_handler")
+    # send checksum number
+    send_message(connection.conn, "Checksum", checksum, SERVER_NAME)
 
-    # spawn a new thread to monitor heartbeats_acks from the client
-    heartbeat_ack_thread = threading.Thread(target=check_heartbeat_ack, args=(connection,))
-    heartbeat_ack_thread.start()
+    # log checksum
+    print(f"checksum - sent checksum: {checksum} to client {connection.client_id}")
+    logging.info(f" checksum - sent checksum: {checksum} to client {connection.client_id}")
 
-    # log starting thread
-    logging.debug(f"system - conn id {connection.id} started check_heartbeat_ack")
-
-    # spawn a new thread to send messages to the peer
-    send_sequence_thread = threading.Thread(target=send_sequence, args=(connection,))
-    send_sequence_thread.start()
-
-    # log starting thread
-    logging.debug(f"system - conn id {connection.id} started send_sequence")
-
-    # spawn a new thread to send heartbeats to the client
-    heartbeat_thread = threading.Thread(target=send_heartbeat, args=(connection,))
-    heartbeat_thread.start()
-
-    # log starting thread
-    logging.debug(f"system - conn id {connection.id} started send_heartbeat")
+    # end the connection after sending checksum
+    end_connection(connection)
 
 def greeting_message_handler(connection, message):
     """
@@ -380,7 +266,6 @@ def inbound_message_handler(connection):
             if message.name == "reconnect_attempt":
                 reconnection_attempt_message_handler(connection, message)
 
-
         # handle socket read errors
         except OSError as error:
 
@@ -445,6 +330,87 @@ def check_heartbeat_ack(connection):
         # sleep thread checking for heartbeat_acks
         time.sleep(1)
 
+def send_sequence(connection):
+    """
+    Function to generate messages to peer
+    """
+
+    print(f"sequence - started sending sequence to client {connection.client_id}")
+    logging.info(f" sequence - started sending sequence to client {connection.client_id}")
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
+
+        # check connection state before sending / continuing data stream
+        if connection.state == "initial_connection":
+
+            try:
+
+                # loop over all numbers we need to send
+                for num in connection.all_uint32_numbers:
+
+                    # send next number in 1 second
+                    time.sleep(1)
+
+                    # send uint32 number
+                    send_message(connection.conn, "Data", num, SERVER_NAME)
+
+                    # log message sent
+                    print(f"sequence - sent {num} to client {connection.client_id}")
+                    logging.info(f" sequence - sent {num} to client {connection.client_id}")
+
+                    # update sent numbers over this connection
+                    connection.sent_uint32_numbers.append(num)
+
+            except OSError:
+
+                # log error
+                print("system - Unable to send messages over the socket")
+                print(f"system - suspending generate_message")
+                logging.error(f"system - Unable to send messages over the socket")
+                logging.error(f"system - suspending generate_message")
+
+                # suspending generate_message thread / function
+                break
+            
+            # send checksum 
+            send_checksum(connection)
+
+        elif connection.state == "reconnected":
+
+            # try sending user input messages to peer
+            try:
+
+                # loop over numbers queued to send
+                for num in connection.queued_uint32_numbers:
+
+                    # send next number in 1 second
+                    time.sleep(1)
+
+                    # send next uint32 number
+                    send_message(connection.conn, "Data", num, SERVER_NAME)
+
+                    # log message sent
+                    print(f"sequence - sent {num} to client {connection.client_id}")
+                    logging.info(f" sequence - sent {num} to client {connection.client_id}")
+
+                    # add recently sent uint32 number to sent_uint32_numbers for connection
+                    connection.sent_uint32_numbers.append(num)
+
+            except OSError:
+
+                # log error
+                print("system - Unable to send messages over the socket")
+                print(f"system - suspending generate_message")
+                logging.error(f"system - Unable to send messages over the socket")
+                logging.error(f"system - suspending generate_message")
+
+                # suspending generate_message thread / function
+                break
+
+            # send checksum
+            send_checksum(connection)
+
 def send_heartbeat(connection):
     """
     Function to continously send heartbeats from the server
@@ -479,6 +445,39 @@ def send_heartbeat(connection):
 
                 # stop / suspend send_heartbeat
                 break
+
+def client_handler(connection):
+    """
+    Handler function for all inbound clients
+    """
+
+    # spawn a new thread to handle inbound messages from client
+    inbound_messages_thread = threading.Thread(target=inbound_message_handler, args=(connection,))
+    inbound_messages_thread.start()
+
+    # log starting thread
+    logging.debug(f"system - conn id {connection.id} started inbound_message_handler")
+
+    # spawn a new thread to monitor heartbeats_acks from the client
+    heartbeat_ack_thread = threading.Thread(target=check_heartbeat_ack, args=(connection,))
+    heartbeat_ack_thread.start()
+
+    # log starting thread
+    logging.debug(f"system - conn id {connection.id} started check_heartbeat_ack")
+
+    # spawn a new thread to send messages to the peer
+    send_sequence_thread = threading.Thread(target=send_sequence, args=(connection,))
+    send_sequence_thread.start()
+
+    # log starting thread
+    logging.debug(f"system - conn id {connection.id} started send_sequence")
+
+    # spawn a new thread to send heartbeats to the client
+    heartbeat_thread = threading.Thread(target=send_heartbeat, args=(connection,))
+    heartbeat_thread.start()
+
+    # log starting thread
+    logging.debug(f"system - conn id {connection.id} started send_heartbeat")
 
 def check_session_store():
     """
@@ -521,9 +520,9 @@ def check_session_store():
             
             # log error 
             print(f"storage - error {error} in check_session_store")
-            print(f"system - conn id {connection.id} stopping check_session_store")
+            print(f"system - stopping check_session_store")
             logging.error(f"storage - error {error} in check_session_store")
-            logging.error(f"system - conn id {connection.id} stopping check_session_store")
+            logging.error(f"system - stopping check_session_store")
 
             # stop / suspend check_session_store
             break
