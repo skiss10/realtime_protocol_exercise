@@ -93,8 +93,8 @@ def handle_heartbeats(connection):
     send_message(connection.conn, "Heartbeat_ack", "Heartbeat_ack", CLIENT_NAME)
 
     # log sent heartbat response
-    print(f"heartbeat - conn id {connection.id} sent heartbeat_ack")
-    logging.info(f" heartbeat - conn id {connection.id} sent heartbeat_ack")
+    print(f"heartbeat - sent heartbeat_ack")
+    logging.info(f" heartbeat - sent heartbeat_ack")
 
     # update last heartbeat timestamp
     connection.last_heartbeat_ack = time.time()
