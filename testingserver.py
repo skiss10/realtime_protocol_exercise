@@ -58,16 +58,16 @@ def send_sequence(connection):
                 # loop over all numbers we need to send
                 for num in connection.all_uint32_numbers:
 
+                    # send next number in 1 second
+                    time.sleep(1)
+
                     # send uint32 number
                     send_message(connection.conn, "Data", num, SERVER_NAME)
                     print(f"sent messages to client {connection.client_id} with payload: {num}")
                     logging.info(f"Message - Sent message to client {connection.client_id} with payload: {num}")
 
-                    # update sent numbers over connection
+                    # update sent numbers over this connection
                     connection.sent_uint32_numbers.append(num)
-
-                    # send next number in 1 second
-                    time.sleep(1)
 
             except OSError:
                 print("Unable to send messages over the socket. Suspending generate_message")
@@ -78,18 +78,22 @@ def send_sequence(connection):
             send_checksum(connection)
 
         elif connection.state == "reconnected":
+            
             # try sending user input messages to peer
             try:
+
                 for num in connection.queued_uint32_numbers:
+
+                    # send next number in 1 second
+                    time.sleep(1)
+
+                    # send next uint32 number
                     send_message(connection.conn, "Data", num, SERVER_NAME)
                     print(f"sent messages to client {connection.client_id} with payload: {num}")
                     logging.info(f"Messages -sending message to client {connection.client_id} over connection {connection.id} with payload {num}")
 
-                    # add number sent to sent_uint32_numbers
+                    # add recently sent uint32 number to sent_uint32_numbers for connection
                     connection.sent_uint32_numbers.append(num)
-
-                    # send an incrementing counter every 1 second to server
-                    time.sleep(1)
 
             except OSError:
                 print("Unable to send messages over the socket. Suspending generate_message")
@@ -242,15 +246,24 @@ def reconnection_attempt_message_handler(connection, message):
                 connection.state = "reconnected"
 
             else:
-                
-                print(f"reconnection request from {message.sender_id} rejected because the reconnection window timed out")
+
+                # reject reconnection attempt
                 send_message(connection.conn, "Reconnect_Rejected", "timeout", send_message)
+                print(f"reconnection request from {message.sender_id} rejected because the reconnection window timed out")
                 logging.info(f"Reconnection - Failed reconnection attempt from {message.sender_id} because reconnection window timed out")
 
+                # end connection with failed reconnect attempt
+                end_connection(connection)
+
     if connection_id_not_found:
-        print(f"reconnect request from {message.sender_id} was rejected as there is no record of the provided connection_id")
+
+        # reject reconnection attempt
         send_message(connection.conn, "Reconnect_Rejected", "no_recorded_state", send_message)
+        print(f"reconnect request from {message.sender_id} was rejected as there is no record of the provided connection_id")
         logging.info(f"Reconnection - Failed reconnection attempt from {message.sender_id} as there is no record of the provided connection_id")
+
+        # end connection with failed reconnect attempt
+        end_connection(connection)
 
 def heartbeat_ack_message_handler(connection):
     """
