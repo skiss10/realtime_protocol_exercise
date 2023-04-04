@@ -1,10 +1,3 @@
-
-[MONITOR] figure out why we still aren't recieving the first message soemtimes... (moved to pause one second before sending payload. See if this helps...)
-
-[MONITOR] test / handle multiple sucessive reconnections
-
-Figure out how to lower time it takes for OS to release port when closing down proxy
-
 Determine if htere is more we need to map from old connection to new connection
 
 shorten logging statements and print statements
@@ -16,6 +9,9 @@ shorten logging statements and print statements
 Remove "with connection.threading_lock" from check_heartbeat_ack in testingserver.py
 
 
+[MONITOR] figure out why we still aren't recieving the first message soemtimes... (moved to pause one second before sending payload. See if this helps...)
+
+[MONITOR] test / handle multiple sucessive reconnections
 
 
 0.5)  Implement these properties for the connection object: https://ably.com/docs/api/realtime-sdk/connection?lang=nodejs
