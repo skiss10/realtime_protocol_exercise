@@ -23,56 +23,6 @@ SERVER_NAME = str(uuid.uuid4())
 # define server interface with memory store
 SESSION_STORAGE = InMemoryStore()
 
-def send_sequence_old(connection):
-    """
-    Function to generate messages to peer
-    """
-
-    print("Starting to send sequence to client...")
-    logging.info(f"Messages - Started thread to send uint32 sequence to client {connection.client_id} over connection {connection.id}")
-
-    # continuous loop contingent on status of connection's threads
-    while not connection.connection_thread_stopper.is_set():
-
-        # get connection state from inbound message handlers before sending / continuing data stream
-        if connection.state == "initial_connection":
-            # try sending user input messages to peer
-            try:
-                send_message(connection.conn, "Data", connection.queued_uint32_numbers[0], SERVER_NAME)
-                print(f"sent messages to client {connection.client_id} with payload: {connection.connection.queued_uint32_numbers[0]}")
-                logging.info(f"Message - Sent message to client {connection.client_id} with payload: {connection.connection.queued_uint32_numbers[0]}")
-
-                # send an incrementing counter every 1 second to server
-                time.sleep(1)
-
-                # increment last number sent
-                connection.last_num_sent += 1
-
-            except OSError:
-                print("Unable to send messages over the socket. Suspending generate_message")
-                logging.error(f"Message - Unable to send messages over the socket. Suspending generate_message")
-                break
-
-        elif connection.state == "reconnected":
-            # try sending user input messages to peer
-            try:
-                send_message(connection.conn, "Data", connection.continue_stream_from, SERVER_NAME)
-                print(f"sent messages to client {connection.client_id} with payload: {connection.continue_stream_from}")
-                logging.info(f"Messages -sending message to {connection.client_id} over connection {connection.continue_stream_from}")
-
-                # send an incrementing counter every 1 second to server
-                time.sleep(1)
-
-                # increment last number sent
-                connection.continue_stream_from += 1 #TODO fix this ugliness
-
-            except OSError:
-                print("Unable to send messages over the socket. Suspending generate_message")
-                logging.error(f"Message - Unable to send messages over the socket. Suspending generate_message")
-                break
-        else:
-            pass
-
 def send_checksum(connection):
     """
     Function to send checksum to client
