@@ -1,15 +1,14 @@
-handle reconnections with new send_sequence function
+test / handle multiple reconnections
+
+figure out if new conenction_id is being sent to client after reconnection
+
+Determine if htere is more we need to map from old connection to new connection
 
 0.015) refactor code ... lots of ugliness in reconnection handlers, etc.
 
 0.04) Update testingproxy.py and testingserver.py to handle server failures ( in prep of redis storage vs inmemorydatastore )
 
 Remove "with connection.threading_lock" from check_heartbeat_ack in testingserver.py
-
-updated code to handle multiple disconnections in series (one after another)
-
-Figure out why the client isn't always recieving the first uint32 number
-
 
 
 
