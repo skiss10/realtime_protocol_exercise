@@ -31,12 +31,15 @@ def end_connection(connection):
 
             # set connection's threads to stop
             connection.connection_thread_stopper.set()
+
+            # log stopping threads
             print(f"connection - conn id {connection.id} stopping threads")
             logging.info(f" connection - conn id {connection.id} stopping threads")
 
     # handle OSError stopping connection's threads
     except OSError as error:
 
+        # log error
         print(f"system - err {error} conn id {connection.id} when stopping threads")
         logging.error(f"system - err {error} conn id {connection.id} when stopping threads")
 
@@ -51,13 +54,15 @@ def end_connection(connection):
 
             # close connection
             connection.conn.close()
+
+            # log closing connection
             print(f"connection - conn id {connection.id} stopped")
             logging.info(f" connection - conn id {connection.id} closed")
 
     # handle OSError closing connection's socket
     except OSError as error:
 
-        # inform user of error hit
+        # log error
         print(f"system - err {error} conn id {connection.id} when closing sockets")
         logging.error(f"system - err {error} conn id {connection.id} when closing sockets")
 
