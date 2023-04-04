@@ -1,280 +1,651 @@
+"""
+Socket server
+"""
+
 import socket
-import sys
+import threading
 import time
-import logging
-import pickle
-import struct
-import asyncio
 import uuid
+import pickle
+import logging
+import sys
+import struct
 
-from _thread import start_new_thread
-from utils.message import Message
+from utils.connection import Connection
+from utils.session_store import InMemoryStore
+from utils.message_sender import send_message
 from utils.checksum import calculate_checksum
-from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, RECONNECT_WINDOW
 
+# create a unique server name
 SERVER_NAME = str(uuid.uuid4())
 
-class AbstractSessionStore:
+# define server interface with memory store
+SESSION_STORAGE = InMemoryStore()
+
+def send_checksum(connection):
     """
-    Abstract data store to define interface
-    """
-    def get(self, key):
-        raise NotImplementedError
-
-    def set(self, key, value):
-        raise NotImplementedError
-
-    def delete(self, key):
-        raise NotImplementedError
-
-class InMemoryStore(AbstractSessionStore):
-    """
-    Class for in memory data store
-    """
-    def __init__(self):
-        self.store = {}
-
-    def get(self, key):
-        return self.store.get(key)
-    
-    def set(self, key, value):
-        self.store[key] = value
-        logging.debug("[%s] Server - Storage - Setting InMemory data store %s:%s", SERVER_NAME, key, value)
-    
-    def delete(self, key):
-        if key in self.store:
-            del self.store[key]
-            logging.debug("[%s] Server - Storage - Deleting InMemory data store for %s", SERVER_NAME, key)
-
-async def send_heartbeats(socket_to_client):
-    """    Continuously send heartbeats to the client until the socket is torn down
+    Function to send checksum to client
     """
 
-    while True:
+    # calculate checksum
+    checksum = calculate_checksum(connection.sent_uint32_numbers)
+
+    # send checksum number
+    send_message(connection.conn, "Checksum", checksum, SERVER_NAME)
+
+    # log checksum
+    print(f"checksum - sent checksum: {checksum} to client {connection.client_id}")
+    logging.info(f" checksum - sent checksum: {checksum} to client {connection.client_id}")
+
+    # end the connection after sending checksum
+    end_connection(connection)
+
+def send_sequence(connection):
+    """
+    Function to generate messages to peer
+    """
+
+    print(f"sequence - started sending sequence to client {connection.client_id}")
+    logging.info(f" sequence - started sending sequence to client {connection.client_id}")
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
+
+        # check connection state before sending / continuing data stream
+        if connection.state == "initial_connection":
+
+            try:
+
+                # loop over all numbers we need to send
+                for num in connection.all_uint32_numbers:
+
+                    # send next number in 1 second
+                    time.sleep(1)
+
+                    # send uint32 number
+                    send_message(connection.conn, "Data", num, SERVER_NAME)
+
+                    # log message sent
+                    print(f"sequence - sent {num} to client {connection.client_id}")
+                    logging.info(f" sequence - sent {num} to client {connection.client_id}")
+
+                    # update sent numbers over this connection
+                    connection.sent_uint32_numbers.append(num)
+
+            except OSError:
+
+                # log error
+                print("system - Unable to send messages over the socket")
+                print(f"system - suspending generate_message")
+                logging.error(f"system - Unable to send messages over the socket")
+                logging.error(f"system - suspending generate_message")
+
+                # suspending generate_message thread / function
+                break
+            
+            # send checksum 
+            send_checksum(connection)
+
+        elif connection.state == "reconnected":
+
+            # try sending user input messages to peer
+            try:
+
+                # loop over numbers queued to send
+                for num in connection.queued_uint32_numbers:
+
+                    # send next number in 1 second
+                    time.sleep(1)
+
+                    # send next uint32 number
+                    send_message(connection.conn, "Data", num, SERVER_NAME)
+
+                    # log message sent
+                    print(f"sequence - sent {num} to client {connection.client_id}")
+                    logging.info(f" sequence - sent {num} to client {connection.client_id}")
+
+                    # add recently sent uint32 number to sent_uint32_numbers for connection
+                    connection.sent_uint32_numbers.append(num)
+
+            except OSError:
+
+                # log error
+                print("system - Unable to send messages over the socket")
+                print(f"system - suspending generate_message")
+                logging.error(f"system - Unable to send messages over the socket")
+                logging.error(f"system - suspending generate_message")
+
+                # suspending generate_message thread / function
+                break
+
+            # send checksum
+            send_checksum(connection)
+
+def end_connection(connection):
+    """
+    Function to stop all threads and close all sockets for a given connection
+    """
+
+    # stop threads related to connection
+    try:
+        
+        # check status of connection_thread_stopper
+        if not connection.connection_thread_stopper.is_set():
+
+            # set connection's threads to stop
+            connection.connection_thread_stopper.set()
+
+            # log stopping threads
+            print(f"connection - conn id {connection.id} stopping threads")
+            logging.info(f" connection - conn id {connection.id} stopping threads")
+
+    # handle OSError stopping connection's threads
+    except OSError as error:
+
+        # log error
+        print(f"system - err {error} conn id {connection.id} when stopping threads")
+        logging.error(f"system - err {error} conn id {connection.id} when stopping threads")
+
+
+    # close the connection's socket
+    try:
+
+        # check connection state
+        if connection.state != "closed":
+
+            # set connection state to closed
+            connection.state = "closed"
+
+            # close connection
+            connection.conn.close()
+
+            # log closing connection
+            print(f"system - conn id {connection.id} to client {connection.client_id} is closed")
+            logging.info(f" system - conn id {connection.id} to client {connection.client_id} is closed")
+
+    # handle OSError closing connection's socket
+    except OSError as error:
+
+        # log error
+        print(f"system - err {error} conn id {connection.id} when closing sockets")
+        logging.error(f"system - err {error} conn id {connection.id} when closing sockets")
+
+def client_handler(connection):
+    """
+    Handler function for all inbound clients
+    """
+
+    # spawn a new thread to handle inbound messages from client
+    inbound_messages_thread = threading.Thread(target=inbound_message_handler, args=(connection,))
+    inbound_messages_thread.start()
+
+    # log starting thread
+    logging.debug(f"system - conn id {connection.id} started inbound_message_handler")
+
+    # spawn a new thread to monitor heartbeats_acks from the client
+    heartbeat_ack_thread = threading.Thread(target=check_heartbeat_ack, args=(connection,))
+    heartbeat_ack_thread.start()
+
+    # log starting thread
+    logging.debug(f"system - conn id {connection.id} started check_heartbeat_ack")
+
+    # spawn a new thread to send messages to the peer
+    send_sequence_thread = threading.Thread(target=send_sequence, args=(connection,))
+    send_sequence_thread.start()
+
+    # log starting thread
+    logging.debug(f"system - conn id {connection.id} started send_sequence")
+
+    # spawn a new thread to send heartbeats to the client
+    heartbeat_thread = threading.Thread(target=send_heartbeat, args=(connection,))
+    heartbeat_thread.start()
+
+    # log starting thread
+    logging.debug(f"system - conn id {connection.id} started send_heartbeat")
+
+def greeting_message_handler(connection, message):
+    """
+    Function to handle client greeting message
+    """
+
+    try:
+
+        # assign client_id for connection
+        connection.client_id = message.sender_id
+        logging.debug(f"connection - conn id {connection.id} goes to client {connection.client_id}")
+
+        # set sequence length
+        connection.sequence_length = message.data
+        logging.debug(f"connection - conn id {connection.id} to client {connection.client_id} has sequence length {connection.sequence_length}")
+
+        # generate uint32 numbers to be sent over connection
+        connection.all_uint32_numbers = [struct.pack('>I', num) for num in range(1, connection.sequence_length+1)]
+
+        # set connection state
+        connection.state = "initial_connection"
+        logging.debug(f"connection - conn id {connection.id} has state {connection.state}")
+
+        # send greeting ack response with connection id inclueded
+        send_message(connection.conn, "Greeting_ack", connection.id, SERVER_NAME)
+        logging.info(f" message - sent greeting_ack over conn id {connection.id} to client {connection.client_id}")
+
+    except OSError as error:
+
+        # log error handling greeting
+        print(f"system - error {error} sending greeting_ack over connection {connection.id} to {connection.client_id}")
+        logging.error(f"system - error {error} sending greeting_ack over connection {connection.id} to {connection.client_id}")
+
+def reconnection_attempt_message_handler(connection, message):
+    """
+    Function to handle reconnections from the client
+    """
+
+    # assign client_id for connection
+    connection.client_id = message.sender_id
+
+    # log updated client_id
+    print(f"reconnection - recieved reconnection attempt from {connection.client_id} over connection_id {connection.id}")
+    logging.info(f" reconnection - recieved reconnection attempt from {connection.client_id} over connection_id {connection.id}")
+
+    # boolean to see if connection object exists
+    connection_id_not_found = True
+
+    # client provided former connection_id
+    alleged_connection_id = message.data[0]
+
+    # defint the last uint32 number recieved by client
+    last_uint32_num = message.data[1]
+
+    # Loop over connections connections in data store
+    for _, stored_connection_object in SESSION_STORAGE.store.items():
+
+        # check if the alleged connection_id from client is stored in SESSION_STORAGE 
+        if stored_connection_object.id == alleged_connection_id:
+
+            # log that we found the connection_id provided by the connected peer
+            logging.info(f" reconnection - conn id {connection.id} recieved reconnection attempt for connection {alleged_connection_id} by {message.sender_id}")
+
+            # set boolean as connection id from message found in storage
+            connection_id_not_found =  False
+
+            # get current timestamp
+            current_time = time.time()
+
+            # see if the last heartbeat ack was recieved within the reconnection window
+            if current_time - stored_connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
+
+                # log successful reconnection
+                print(f"reconnection - successful reconnection from client {message.sender_id}")
+                logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
+
+                # update last_heartbeat so check_session_store removes the connection sooner but gives reconnection_attempt_message_handler enough time to get needed data
+                stored_connection_object.last_heartbeat_ack = time.time() - 58
+
+                # transfer requested numbers from old connection
+                connection.all_uint32_numbers = stored_connection_object.all_uint32_numbers
+
+                # get previously sent numbers up to last message num in sequence reported by client
+                connection.sent_uint32_numbers =  stored_connection_object.all_uint32_numbers[:stored_connection_object.all_uint32_numbers.index(last_uint32_num) + 1]
+
+                # set queued_uint32_numbers on new connection as list of remaining messages to send
+                connection.queued_uint32_numbers = stored_connection_object.all_uint32_numbers[stored_connection_object.all_uint32_numbers.index(last_uint32_num) + 1:]
+                logging.debug(f"reconnection - last reported uint32_number received by client {message.sender_id} was {last_uint32_num}")
+
+                # set connection cleint_id
+                connection.client_id = message.sender_id
+
+                # set connection condition
+                connection.state = "reconnected"
+
+                # send reconnection success message
+                send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
+
+            else:
+
+                # reject reconnection attempt
+                send_message(connection.conn, "Reconnect_rejected", "timeout", send_message)
+
+                # log reconnection rejected
+                print(f"reconnection - attempt from {message.sender_id} failed from window timed out")
+                logging.info(f" reconnection - attempt from {message.sender_id} failed from window timed out")
+
+                # end connection with failed reconnect attempt
+                end_connection(connection)
+
+    if connection_id_not_found:
+
+        # reject reconnection attempt
+        send_message(connection.conn, "Reconnect_rejected", "no_recorded_state", send_message)
+
+        # log reconnection rejected
+        print(f"reconnection - attempt from {message.sender_id} failed, no record of the provided connection_id")
+        logging.info(f" reconnection - attempt from {message.sender_id} failed, no record of the provided connection_id")
+
+        # end connection with failed reconnect attempt
+        end_connection(connection)
+
+def heartbeat_ack_message_handler(connection):
+    """
+    Function to handle heartbeat ack messages from client
+    """
+
+    try:
+        # aquire lock to update shared last_heartbeat_ack variable in other threads
+        with connection.threading_lock:
+
+            # update last heartbeat ack timestamp
+            connection.last_heartbeat_ack = time.time()
+
+            # log heartbeat ack update
+            logging.debug(f"heartbeat - updated heartbeat_ack timestamp on conn id {connection.id}")
+
+
+    except OSError as err:
+
+        # log error
+        print(f"heartbeat - error {err} updating heartbeat_ack timestamp for conn id {connection.id}")
+        logging.error(f"heartbeat - error {err} updating heartbeat_ack timestamp for conn id {connection.id}")
+
+def inbound_message_handler(connection):
+    """
+    Handler for all messages inbound to the client.
+    """
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
+
+        # retrieve inbound data from client
         try:
-            # timestamp and sign heartbeat
-            server_timestamp = str(time.time())
-            heartbeat = Message("heartbeat", server_timestamp, SERVER_NAME)
 
-            #serialize message
-            serialized_heartbeat = pickle.dumps(heartbeat)
+            # listen for messages over connection
+            serialized_message = connection.conn.recv(1024)
 
-            # send heartbeat payload message
-            logging.info("[%s] Server - Heartbeat - Sending heartbeat to client: %s", SERVER_NAME, socket_to_client.getpeername())
-            socket_to_client.sendall(serialized_heartbeat)
-            await asyncio.sleep(HEARTBEAT_INTERVAL)
+            # unserialize data from socket
+            message = pickle.loads(serialized_message)
 
-        except socket.error as err:
+            # log new message recieved
+            print(f"message - conn id {connection.id} to client {message.sender_id} recieved message type {message.name} with payload: {message.data}")
+            logging.info(f" message - conn id {connection.id} to client {message.sender_id} recieved message type {message.name} with payload: {message.data}")
 
-            # stop sending heartbeats if socket throws error
-            logging.info("[%s] Server - Socket - connection error: %s", SERVER_NAME, err)
-            logging.info("[%s] Server - Socket - stopping hearbeats to %s", SERVER_NAME, socket_to_client)
+            # check if the messages is a heartbeat_ack
+            if message.name == "Heartbeat_ack":
+                heartbeat_ack_message_handler(connection)
+
+            # check if the messages is a greeing
+            if message.name == "Greeting":
+                greeting_message_handler(connection, message)
+
+            # check if the messages is a reconnect
+            if message.name == "reconnect_attempt":
+                reconnection_attempt_message_handler(connection, message)
+
+
+        # handle socket read errors
+        except OSError as error:
+
+            # log error
+            print(f"system - error {error} on conn id {connection.id} to client {connection.client_id}")
+            print(f"system - stopping inbound_message_handler for {connection.id}")
+            logging.error(f"system - error {error} on conn id {connection.id} to client {connection.client_id}")
+            logging.error(f"system - stopping inbound_message_handler for {connection.id}")
+
+            # stop / suspend inbound_message_handler
             break
 
-async def send_sequence(incoming_message, socket_to_client, session_storage):
-    """
-    Send a sequence of messages every second with incrementing uint32 numbers as the payload.
-    """
-    
-    #TODO: add logic to handle disconnections from client mid sequence send. 
+        # handle corrupted inbound data from peer. This is not a realistic failure scenario for an Ably client so will break loop
+        except EOFError as error:
 
-    # store incoming client_id
-    session_storage.set("client_id", incoming_message.sender_id)
-    session_storage.set(incoming_message.sender_id, socket_to_client.getpeername())
-    logging.info("[%s] Server - Storage - stored client_id: %s", SERVER_NAME, incoming_message.sender_id)
-    logging.info("[%s] Server - Storage - stored client_id to socket info %s : %s", SERVER_NAME, incoming_message.sender_id, socket_to_client.getpeername())
-
-    # store requested sequence length
-    sequence_length = incoming_message.data
-    logging.info("[%s] Server - Messages - sequence length requested: %s", SERVER_NAME, sequence_length)
-    session_storage.set("sequence_length", sequence_length)
-    logging.info("[%s] Server - Storage - stored requested sequence_length: %s", SERVER_NAME, sequence_length)
-
-    # Create an incrementing list of uint32 numbers
-    uint32_numbers = [struct.pack('>I', num) for num in range(1, sequence_length+1)]
-    logging.info("[%s] Server - System - Server created list of incrementing uint32 numbers: %s", SERVER_NAME, uint32_numbers)
-
-    # store numbers
-    session_storage.set("uint32 numbers", uint32_numbers)
-    logging.info("[%s] Server - Storage - stored uint32 numbers: %s", SERVER_NAME, uint32_numbers)
-
-    # Send each uint32
-    logging.info("[%s] Server - Messages - sending uint32 numbers to client %s" , SERVER_NAME, incoming_message.sender_id)
-    numbers_to_send = uint32_numbers
-    numbers_sent = []
-    session_storage.set("queued", numbers_to_send)
-    for num in uint32_numbers:
-
-        # create a single sequence message
-        message = Message("stream_payload", num, SERVER_NAME)
-
-        #serialize the message
-        serialized_message = pickle.dumps(message)
-
-        # send sequence message
-        logging.info("[%s] Server - Sending: %s to %s", SERVER_NAME, num, incoming_message.sender_id)
-        socket_to_client.sendall(serialized_message)
-
-        # update store
-        numbers_sent.append(num)
-        session_storage.set("sent", numbers_sent)
-        numbers_to_send = numbers_to_send[1:]
-        session_storage.set("queued", numbers_to_send)
-        logging.info("[%s] Server - Storage - has stored: %s", SERVER_NAME, session_storage.store)
-
-        # wait for 1 second before sending the next number
-        await asyncio.sleep(1)
-
-    # get the md5 hash for the list of uint32 numbers
-    checksum = calculate_checksum(uint32_numbers)
-    logging.info("[%s] Server - Messages - calculated checksum is %s for client %s over %s" , SERVER_NAME, checksum, incoming_message.sender_id, socket_to_client.getpeername())
-
-    # create checksum message
-    message = Message("checksum", checksum, SERVER_NAME)
-
-    #serialize checksum message
-    serialized_message = pickle.dumps(message)
-
-    # send checksum message to the server
-    logging.info("[%s] Server - Messages - sending checksum payload to client %s", SERVER_NAME, incoming_message.sender_id)
-    socket_to_client.sendall(serialized_message)
-
-async def message_handler(incoming_message, socket_to_client, session_storage):
-    """
-    Handle incoming messages
-    """
-
-    if incoming_message.name == "greeting":
-        await send_sequence(incoming_message, socket_to_client, session_storage)
-
-    elif incoming_message.name == "reconnection":
-        pass #TODO add functionality to handle client reconnection attempts
-
-    elif incoming_message.name == "disconnection":
-        pass #TODO: Implement logic to handle disconnections from client gracefully
-
-    elif incoming_message.name == "heartbeat_ack":
-        logging.info("[%s] Server - Heartbeat - Recieved hearbeat ack from client: %s", SERVER_NAME, incoming_message.sender_id)
-
-    else:
-        logging.info("[%s] Server - System - message_handler recieved unknown message name type. Discarding message...", SERVER_NAME)
-
-async def client_handler(socket_to_client, session_storage):
-    """
-    Handle all logic needed on a per
-    client basis.
-
-    Input: client socket and client address
-    """
-
-    logging.info("[%s] Server - Socket - Connection on: %s", SERVER_NAME, socket_to_client.getpeername())
-    while True:
-        try:
-            # receive data from the client
-            serialized_message = socket_to_client.recv(1024)
-
-            # unserialize message
-            incoming_message = pickle.loads(serialized_message)
-            logging.info("[%s] Server - Messages - message recieved of type: %s", SERVER_NAME, incoming_message.name)
-
-            # handle incoming messages in a separate task
-            await message_handler(incoming_message, socket_to_client, session_storage)
-
-        except OSError:
-            # The socket is closed if a socket.error is raised
-            print("The socket has been closed.")
-            logging.info("[%s] Server - Socket - the socket has been closed.", SERVER_NAME)
+            # log error
+            print(f"system - error {error} received corrupted on {connection.id} from client {connection.client_id}. Peer likely closed connection.")
+            print(f"system - suspending inbound_message_handler for {connection.id}")
+            logging.error(f"system - error {error} received corrupted on {connection.id} from client {connection.client_id}. Peer likely closed connection.")
+            logging.error(f"system - suspending inbound_message_handler for {connection.id}")
+            
+            # stop / suspend inbound_message_handler
             break
 
-def start_server(port):
+def check_heartbeat_ack(connection):
     """
-    Initiate the server socket and set
-    it to listen on the localhost at a given port
-
-    Input: port number for local host
-
-    Output: socket object
-    """
-    # create a socket object
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # bind the socket to a specific address and port
-    server_socket.bind(('localhost', port))
-
-    # listen for incoming connections
-    server_socket.listen(1)
-    logging.info("[%s] Server - Socket - Listening on localhost:{%s} ...", SERVER_NAME, port)
-
-    return server_socket
-
-async def run_client_handler(socket_to_client):
-    """
-    Establish tastks to run for each client in parallel
+    Function to ensure heartbeats are being recieved from client
     """
 
-    logging.debug("[%s] Server - Function - starting client handler for %s", SERVER_NAME, socket_to_client)
-    logging.debug("[%s] Server - Heartbeat - Starting to send heartbeats to %s", SERVER_NAME, socket_to_client)
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
 
-    # start a client session store
-    session_storage = InMemoryStore()
-    logging.info("[%s] Server - Storage - instantiating new session store for socket connection to peer %s", SERVER_NAME, socket_to_client.getpeername())
+        # get current timestamp
+        current_time = time.time()
 
-    # Run parallel tasks for new client conccurently
-    await asyncio.gather(
-        client_handler(socket_to_client, session_storage),
-        send_heartbeats(socket_to_client)
-        )
+        try:
 
-def add_new_client(socket_to_client):
+            # check for three missed heartbeats
+            if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
+
+                # log heartbeat_acks missing
+                print(f" heartbeat - conn id {connection.id} to client {connection.client_id} not recieving heartbeat_acks")
+                print(f"system - disconnecting client {connection.client_id}")
+                logging.info(f" heartbeat - conn id {connection.id} to client {connection.client_id} not recieving heartbeat_acks")
+                logging.info(f" system - disconnecting client {connection.client_id}")
+                
+                # stop threads and close socket
+                end_connection(connection)
+
+                # stop / suspend check_heartbeat_ack
+                break
+
+        except OSError as error:
+            print(f"heartbeat - error {error} in check_heartbeat_ack")
+            print(f"system - conn id {connection.id} stopping check_heartbeat_ack")
+            logging.error(f"heartbeat - error {error} in check_heartbeat_ack")
+            logging.error(f"system - conn id {connection.id} stopping check_heartbeat_ack")
+            
+            # stop / suspend check_heartbeat_ack
+            break
+
+        # sleep thread checking for heartbeat_acks
+        time.sleep(1)
+
+def send_heartbeat(connection):
     """
-    Handle Client Asynchronously
+    Function to continously send heartbeats from the server
+    to the client
     """
-    asyncio.run(run_client_handler(socket_to_client))
+
+    # continuous loop contingent on status of connection's threads
+    while not connection.connection_thread_stopper.is_set():
+
+        # check session state before sending heartbeats
+        if connection.state in ['initial_connection', 'reconnected']:
+            time.sleep(HEARTBEAT_INTERVAL)
+
+            # send heartbeats
+            try:
+
+                # send heartbeat
+                send_message(connection.conn, "Heartbeat" , "", SERVER_NAME)
+
+                # log sending heartbeat
+                print(f"heartbeat - sent heartbeat over conn id {connection.id} to client {connection.client_id}")
+                logging.info(f" heartbeat - sent heartbeat over conn id {connection.id} to client {connection.client_id}")
+
+            # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
+            except OSError as error:
+
+                # log error
+                print(f"heartbeat - error {error} in send_heartbeat")
+                print(f"system - conn id {connection.id} stopping send_heartbeat")
+                logging.error(f"heartbeat - error {error} in send_heartbeat")
+                logging.error(f"system - conn id {connection.id} stopping send_heartbeat")
+
+                # stop / suspend send_heartbeat
+                break
+
+def check_session_store():
+    """
+    Function to ensure heartbeats are being recieved from client
+    """
+
+    # log starting check_session_store
+    print("storage - check_session_store started")
+    logging.info(f" storage - check_session_store started")
+
+    # Continuous loop while server running checking session store
+    while True:
+
+        # get current timestamp
+        current_time = time.time()
+
+        # define active connections
+        active_connections = SESSION_STORAGE.store.items()
+
+        # create list for stale connections
+        stale_connections = []
+
+        try:
+
+            # loop over connection objects in session store
+            for _, connection_object in active_connections:
+
+                # check heartbeats for stale connection entries
+                if current_time - connection_object.last_heartbeat_ack > RECONNECT_WINDOW +1: # adding one second to give reconnection_attempt_message_handler time to evaluate last heartbeat
+                    
+                    # add stale connections to list for removal if missing heartbeat acks
+                    stale_connections.append(connection_object)
+
+                    # log new stale connection
+                    print(f"storage - adding {connection_object.id} to session removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
+                    logging.info(f" storage - adding {connection_object.id} to session removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
+
+
+        except OSError as error:
+            
+            # log error 
+            print(f"storage - error {error} in check_session_store")
+            print(f"system - conn id {connection.id} stopping check_session_store")
+            logging.error(f"storage - error {error} in check_session_store")
+            logging.error(f"system - conn id {connection.id} stopping check_session_store")
+
+            # stop / suspend check_session_store
+            break
+
+        # loop over stale connection
+        for connection_object in stale_connections:
+
+            # determine if stale connection is in session storage
+            if connection_object.id in SESSION_STORAGE.store:
+
+                # remove the connection from session storage
+                SESSION_STORAGE.delete(connection_object.id)
+
+                # log removal of connection from session storage
+                print(f"storage - removed stale connection {connection_object.id} from session_store")
+                logging.info(f" storage - removed stale connection {connection_object.id} from session_store")
+
+        # sleep thread checking for stale connections
+        time.sleep(1)
 
 def main():
     """
-    Main
+    main function for server
     """
 
-    #define server name
-    server_name = SERVER_NAME
+    # define server address
+    host = '127.0.0.1'
+    port = 12331
+
+    # start thread to manage server session storage
+    check_session_store_thread = threading.Thread(target=check_session_store, args=())
+    check_session_store_thread.start()
+
+    # log starting server session storage
+    logging.debug(f"storage - started check_session_store_thread")
+
+    # create server socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+
+        # start server
+        try:
+            # Inform OS to allow socket to use a given local address even if its in use by another program
+            # s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind((host, port))
+            s.listen(5)
+
+            # log starting server
+            print(f"system - listening on localhost:{port} ...")
+            logging.info(f" system - listening on localhost:{port} ...")
+        
+        except OSError as error:
+
+            # log error
+            print(f"system - socket port has not been closed by OS yet. port: {port}")
+            logging.error(f"system - socket port has not been closed by OS yet. port: {port}")
+
+        # handle inbound connection attempts
+        try:
+
+            # listen for new connections
+            while True:
+                conn, addr = s.accept()
+
+                # log new connection
+                print(f"system - recieved connection on:{addr} ...")
+                logging.info(f" system - recieved connection on:{addr} ...")
+
+                # instantiate new connection object
+                connection = Connection(conn, addr)
+
+                # log new connection object
+                logging.debug(f"system - assigned conn id {connection.id} to connection over {addr}")
+
+                # add new connection to connections list
+                SESSION_STORAGE.set(connection.id, connection)
+
+                # handle each client in a separate thread
+                client_thread = threading.Thread(target=client_handler, args=(connection,))
+                client_thread.start()
+
+                # log starting new client_handler thread
+                logging.debug(f"system - started client_handler thread for conn id {connection.id} ...")
+
+        except KeyboardInterrupt:
+
+            # log keyboard interrupt
+            print(f"system - stopped due to keyboard interrupt")
+            logging.info(f" system - stopped due to keyboard interrupt")
+
+            # check for connections
+            if len(SESSION_STORAGE.store) >= 1:
+
+                # close all sockets and stop threads for each connection
+                for _, connection_object in SESSION_STORAGE.store.items():
+
+                    # end connection
+                    end_connection(connection_object)
+
+        except OSError as error:
+
+            # operating system is preventing the socket from accepting connections.
+            if error.errno == 22:
+
+                # log error
+                print(f"system - OS is preventing the socket from accepting new connections.")
+                logging.error(f"system - OS is preventing the socket from accepting new connections.")
+
+                # close program
+                sys.exit()
+
+if __name__ == "__main__":
 
     # Configure logging
     logging.basicConfig(
-        level=LOG_LEVEL,
-        filename=LOG_FILE_PATH,
-        format='[%(asctime)s] %(levelname)s: %(message)s',
-        datefmt='%m-%d %H:%M:%S'
-        )
+    level=LOG_LEVEL,
+    filename=LOG_FILE_PATH,
+    format=f'[%(asctime)s] - Server - {SERVER_NAME} - %(levelname)s - %(message)s',
+    datefmt='%m-%d %H:%M:%S')
+    
+    # log server starting
+    print("===== Server - starting %s =====", SERVER_NAME)
     logging.info("===== Server - starting %s =====", SERVER_NAME)
 
-    # get the port number from commandline
-    port = int(sys.argv[1])
-
-    # start the server
-    server_socket = start_server(port)
-
-    # list of threads for each client
-    threads = []
-
-    # continuosly listen for connection requests
-    try:
-        while True:
-          
-            # accept inbound connection attempts from clients
-            socket_to_client, _ = server_socket.accept()
-            logging.info("[%s] Server - Socket - incoming client socket %s", SERVER_NAME, socket_to_client)
-
-            # Start a new thread for each client
-            thread_id = start_new_thread(add_new_client, (socket_to_client,))
-            threads.append(thread_id)
-            logging.info("[%s] Server - System - thread ids: %s", SERVER_NAME, str(threads))
-
-    except KeyboardInterrupt:
-        server_socket.close()
-        print("The Server has been stopped and the server socket(s) has been closed.")
-        logging.info("[%s] Server - Function - the server has been stopped", SERVER_NAME)
-        logging.info("[%s] Server - System - thread ids: %s", SERVER_NAME, str(threads))
-
-if __name__ == '__main__':
+    # start server
     main()
