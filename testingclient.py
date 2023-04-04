@@ -86,7 +86,7 @@ def handle_heartbeats(connection):
     """
     
     # log heartbeat
-    print(f"messaeg - recieved heartbeat")
+    print(f"message - recieved heartbeat")
     logging.info(f" message - conn id {connection.id} received heartbeat")
 
     # send heartbeat_ack back to server
