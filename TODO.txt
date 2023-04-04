@@ -2,6 +2,8 @@ Reformat and shorten logging / print statements
 
 added debug log statements to proxy.py to allow seeing whats happening
 
+update proxy file to use with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn: for context management
+
 0.015) refactor code ... lots of ugliness in reconnection handlers, etc.
 
 0.04) Update testingproxy.py and testingserver.py to handle server failures ( in prep of redis storage vs inmemorydatastore )
