@@ -136,18 +136,17 @@ def handle_reconnect_rejection(connection, unserialized_message):
     Function to handle reconnect rejection message from server
     """
 
-    # end the connection
-    end_connection(connection)
+    # inform user of reconnection failure
     print(f"Reconenction rejected: {unserialized_message.data}")
     logging.info(f"Reconnect - Failed: {unserialized_message.data}")
 
+    # close connection
+    end_connection(connection)
 
 def inbound_message_handler(connection):
     """
     Function to handle inbound messages from Server
     """
-
-    print("started inbound_message_handler...")
 
     # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
@@ -238,7 +237,7 @@ def server_handler(peer_address, former_connection = None):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
         try:
             conn.connect(peer_address)
-            print("Connected to server")
+            print(f"Connection to server at {peer_address}")
             logging.info(f"Connection - Connected to Server at {peer_address}")
 
             # instantiate connection object
