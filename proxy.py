@@ -141,7 +141,6 @@ def main():
             print("Hitting interrupt for proxy")
             proxy_server_socket.close()
 
-
     try:
 
         # continuosly listen for new client connections
