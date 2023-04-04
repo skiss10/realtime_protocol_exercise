@@ -1,59 +1,24 @@
-Reformat and shorten logging / print statements
+TODO
 
-added debug log statements to proxy.py to allow seeing whats happening
+- update proxy file to use with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn: for context management
 
-update proxy file to use with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn: for context management
+- figure out testing
 
-0.015) refactor code ... lots of ugliness in reconnection handlers, etc.
+- add a README 
 
-0.04) Update testingproxy.py and testingserver.py to handle server failures ( in prep of redis storage vs inmemorydatastore )
+- put older files into an archive directory with an explaination in readme why they're there
 
-Remove "with connection.threading_lock" from check_heartbeat_ack in testingserver.py
+- add info about requirements.txt to README
 
-
-[MONITOR] figure out why we still aren't recieving the first message soemtimes... (moved to pause one second before sending payload. See if this helps...)
-
-[MONITOR] test / handle multiple sucessive reconnections
+- reference TODO in readme
 
 
-0.5)  Implement these properties for the connection object: https://ably.com/docs/api/realtime-sdk/connection?lang=nodejs
-Implement methods to run upon initialization of Connection object (Setting raddr, etc.)
-Implement greeting response from server to client with connection_id, perhaps set this equal to the thread ID
+Future:
 
-- Create a prompt for user input when running client.py asking if the user wants to simulate a disconnection. If yes, then for how long (in seconds)
-- Update client.py server_handler or message_handler to have logic that if discconect simulation is True, disconnect for that time (this will be just socket.disconnect, time.sleep. socket.reconnect) async somewhere here..
-- Update client.py to format a reconnection type message and logic to send 
-- Update server.py to handling incoming reconnection type requets (rejecting any older than 120 seconds)
--
+- Run multiple servers and load balance incoming requests (will need to update testingproxy.py and testingserver.py to handle server failures)
 
+- Add a variable to constants.py to choose from one of various connection types (SSE vs. raw socket. vs. gRPC)
 
-6) Add a variable to constants.py to simulate various connection types (SSE vs. Socket. vs. gRPC)
+Items to monitor:
 
-
-7) Refactor client.py message_handler with a handler dictionary mapping:
-
-def message_handler(msg):
-    handlers = {
-        "hello": handle_hello,
-        "goodbye": handle_goodbye,
-        "ping": handle_ping,
-        # add more message types and their handlers here
-    }
-    handler = handlers.get(msg["type"], handle_unknown)
-    return handler(msg)
-
-def handle_hello(msg):
-    # handle the "hello" message type
-    pass
-
-def handle_goodbye(msg):
-    # handle the "goodbye" message type
-    pass
-
-def handle_ping(msg):
-    # handle the "ping" message type
-    pass
-
-def handle_unknown(msg):
-    # handle any unknown message types
-    pass
+- figure out why the client wasn't recieving the first message despite it being sent by the server
