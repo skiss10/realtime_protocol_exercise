@@ -1,8 +1,6 @@
 
 [MONITOR] figure out why we still aren't recieving the first message soemtimes... (moved to pause one second before sending payload. See if this helps...)
 
-Handle reconnection timeout logic
-
 test / handle multiple reconnections
 
 figure out if new conenction_id is being sent to client after reconnection
