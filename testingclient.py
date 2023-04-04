@@ -131,6 +131,17 @@ def handle_checksum(connection, unserialized_message):
     end_connection(connection)
     sys.exit()
 
+def handle_reconnect_rejection(connection, unserialized_message):
+    """
+    Function to handle reconnect rejection message from server
+    """
+
+    # end the connection
+    end_connection(connection)
+    print(f"Reconenction rejected: {unserialized_message.data}")
+    logging.info(f"Reconnect - Failed: {unserialized_message.data}")
+
+
 def inbound_message_handler(connection):
     """
     Function to handle inbound messages from Server
@@ -161,6 +172,10 @@ def inbound_message_handler(connection):
 
             if unserialized_message.name == "Checksum":
                 handle_checksum(connection, unserialized_message)
+
+            if unserialized_message.name == "Reconnect_rejected":
+                handle_reconnect_rejection(connection, unserialized_message)
+
                     
         # trigger error when thread can't read from socket
         except OSError as error:
