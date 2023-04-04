@@ -245,6 +245,9 @@ def server_handler(peer_address, former_connection = None):
                 logging.info(f"Message - Sent greeting message to Server at {connection.addr}")
 
             else:
+                # map formerly recieved numbers from previous connection into new connection object
+                connection.uint32_numbers_recieved = former_connection.uint32_numbers_recieved
+
                 # send reconnect message to peer with previous connection_id and last message recieved
                 send_message(connection.conn, "reconnect_attempt", (former_connection.id, former_connection.uint32_numbers_recieved[-1]), CLIENT_NAME)
                 print("sent reconnection message")
