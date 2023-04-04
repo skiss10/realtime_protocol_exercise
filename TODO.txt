@@ -1,6 +1,6 @@
-Determine if htere is more we need to map from old connection to new connection
+Reformat and shorten logging / print statements
 
-shorten logging statements and print statements
+added debug log statements to proxy.py to allow seeing whats happening
 
 0.015) refactor code ... lots of ugliness in reconnection handlers, etc.
 
