@@ -78,7 +78,7 @@ def send_sequence(connection):
             send_checksum(connection)
 
         elif connection.state == "reconnected":
-            
+
             # try sending user input messages to peer
             try:
 
@@ -248,7 +248,7 @@ def reconnection_attempt_message_handler(connection, message):
             else:
 
                 # reject reconnection attempt
-                send_message(connection.conn, "Reconnect_Rejected", "timeout", send_message)
+                send_message(connection.conn, "Reconnect_rejected", "timeout", send_message)
                 print(f"reconnection request from {message.sender_id} rejected because the reconnection window timed out")
                 logging.info(f"Reconnection - Failed reconnection attempt from {message.sender_id} because reconnection window timed out")
 
@@ -258,7 +258,7 @@ def reconnection_attempt_message_handler(connection, message):
     if connection_id_not_found:
 
         # reject reconnection attempt
-        send_message(connection.conn, "Reconnect_Rejected", "no_recorded_state", send_message)
+        send_message(connection.conn, "Reconnect_rejected", "no_recorded_state", send_message)
         print(f"reconnect request from {message.sender_id} was rejected as there is no record of the provided connection_id")
         logging.info(f"Reconnection - Failed reconnection attempt from {message.sender_id} as there is no record of the provided connection_id")
 
