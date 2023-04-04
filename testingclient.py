@@ -143,6 +143,18 @@ def handle_reconnect_rejection(connection, unserialized_message):
     # close connection
     end_connection(connection)
 
+def handle_reconnect_accepted(connection, unserialized_message):
+    """
+    Function to handle reconnect accepted message from server
+    """
+
+    # inform user of reconnection accepted
+    print(f"Reconenction accepted. Updated connection.id: {unserialized_message.data}")
+    logging.info(f"Reconnect - Accepted. Updated connection.id: {unserialized_message.data}")
+
+    # set new connection ID
+    connection.id = unserialized_message.data
+
 def inbound_message_handler(connection):
     """
     Function to handle inbound messages from Server
@@ -175,10 +187,13 @@ def inbound_message_handler(connection):
             if unserialized_message.name == "Reconnect_rejected":
                 handle_reconnect_rejection(connection, unserialized_message)
 
+            if unserialized_message.name == "Reconnect_accepted":
+                handle_reconnect_accepted(connection, unserialized_message)
+
                     
         # trigger error when thread can't read from socket
         except OSError as error:
-            print("Error reading from Socket. Suspending inbound_message_handler")
+            print(f"Error reading from Socket: {error} - Suspending inbound_message_handler")
             logging.error(f"Message - Error {error} reading message from server. Suspending inbound_message_handler")
             break
 
