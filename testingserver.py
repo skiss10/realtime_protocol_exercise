@@ -245,6 +245,10 @@ def reconnection_attempt_message_handler(connection, message):
                 # set connection condition
                 connection.state = "reconnected"
 
+                # send reconnection success message
+                send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
+
+
             else:
 
                 # reject reconnection attempt
