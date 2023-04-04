@@ -31,14 +31,14 @@ def end_connection(connection):
 
             # set connection's threads to stop
             connection.connection_thread_stopper.set()
-            print("threads for connection are flagged to stop")
-            logging.info(f" Connection - Threads for connection {connection.id} to server are flagged to stop")
+            print(f"connection - conn id {connection.id} stopping threads")
+            logging.info(f" connection - conn id {connection.id} stopping threads")
 
     # handle OSError stopping connection's threads
     except OSError as error:
 
-        print("Error stopping the connection's theads")
-        logging.error(f"Connection - Error {error} stopping the theads for {connection.id}")
+        print(f"system - err {error} conn id {connection.id} when stopping threads")
+        logging.error(f"system - err {error} conn id {connection.id} when stopping threads")
 
     # close the connection's socket
     try:
@@ -51,15 +51,15 @@ def end_connection(connection):
 
             # close connection
             connection.conn.close()
-            print("socket for connection closed")
-            logging.info(f" Connection - Connection {connection.id} stopped")
+            print(f"connection - conn id {connection.id} stopped")
+            logging.info(f" connection - conn id {connection.id} closed")
 
     # handle OSError closing connection's socket
     except OSError as error:
 
         # inform user of error hit
-        print("Error closing the connections socket")
-        logging.error(f"Connection - Error {error} closing socket for {connection.id}")
+        print(f"system - err {error} conn id {connection.id} when closing sockets")
+        logging.error(f"system - err {error} conn id {connection.id} when closing sockets")
 
 def handle_greeting_ack(connection, unserialized_message):
     """
@@ -70,23 +70,26 @@ def handle_greeting_ack(connection, unserialized_message):
     connection.id = unserialized_message.data
 
     # inform user
-    print("Received Greeting_ack")
-    print(f"connection_id from server is {unserialized_message.data}")
-    logging.info(f" Message - Recieved Greeting_ack over {connection.id}")
-    logging.info(f" Message - Connection_id from server is {unserialized_message.data}")
+    print(f"message - recieved greeting_ack")
+    print(f"message - new conn id {connection.id}")
+    logging.info(f" message - recieved greeting_ack")
+    logging.info(f" message - new conn id {connection.id}")
 
 def handle_heartbeats(connection):
     """
     Function to handle incoming messages of type "heartbeat" from server
     """
     
-    print(f"Received heartbeat")
-    logging.info(f" Message - Received heartbeat over {connection.id}")
+    # log heartbeat
+    print(f"messaeg - recieved heartbeat")
+    logging.info(f" message - conn id {connection.id} received heartbeat")
 
     # send heartbeat_ack back to server
     send_message(connection.conn, "Heartbeat_ack", "Heartbeat_ack", CLIENT_NAME)
-    print("Sent Heartbeat_ack")
-    logging.info(f" Message - Sent heartbeat_ack over {connection.id}")
+
+    # log sent heartbat response
+    print(f"heartbeat - conn id {connection.id} sent heartbeat_ack")
+    logging.info(f" heartbeat - conn id {connection.id} sent heartbeat_ack")
 
     # update last heartbeat timestamp
     connection.last_heartbeat_ack = time.time()
@@ -101,8 +104,10 @@ def handle_data(connection, unserialized_message):
 
     # add new uint32 number to connection uint32_numbers_recieved attribute
     connection.uint32_numbers_recieved.append(uint32_num)
-    print(f"recieved message from server with payload: {uint32_num}")
-    logging.info(f" Message - Recieved message from server with payload: {uint32_num}")
+
+    # log mesasge info
+    print(f"message - recieved message type {unserialized_message.name} with payload: {unserialized_message.data}")
+    logging.info(f" message - recieved message type {unserialized_message.name} with payload: {unserialized_message.data}")
 
 def handle_checksum(connection, unserialized_message):
     """
@@ -111,20 +116,22 @@ def handle_checksum(connection, unserialized_message):
 
     # gather checksum from server
     server_checksum = unserialized_message.data
-    print(f"Server sent checksum {server_checksum}")
-    logging.info(f" Checksum - Recieved checksum from server with payload: {server_checksum}")
+
+    # log checksum
+    print(f"checksum - server checksum {server_checksum}")
+    logging.info(f" checksum - server checksum {server_checksum}")
 
     # calculate checksum locally
     local_checksum = calculate_checksum(connection.uint32_numbers_recieved)
-    logging.info(f" Checksum - Local checksum calculated as: {local_checksum}")
-    print(f"Locally calculated checksum is {local_checksum}")
+    print(f"checksum - local checksum {local_checksum}")
+    logging.info(f" checksum - local checksum {local_checksum}")
 
     # determine if checksums are equivalent
     if local_checksum == server_checksum:
 
         # inform user of successful transfer of uint32 numbers
-        print(f"Transfer of uint32 numbers successful!")
-        logging.info(f" System - SUCCESS! local checksum and server checksum are equivalent")
+        print(f"system - SUCCESS! local checksum and server checksum are equal")
+        logging.info(f" system - SUCCESS! local checksum and server checksum are equal")
 
     # end connection
     end_connection(connection)
@@ -138,8 +145,8 @@ def handle_reconnect_rejection(connection, unserialized_message):
     """
 
     # inform user of reconnection failure
-    print(f"Reconenction rejected: {unserialized_message.data}")
-    logging.info(f" Reconnect - Failed: {unserialized_message.data}")
+    print(f"reconnection - failed: {unserialized_message.data}")
+    logging.info(f" reconnection - failed: {unserialized_message.data}")
 
     # close connection
     end_connection(connection)
@@ -149,12 +156,12 @@ def handle_reconnect_accepted(connection, unserialized_message):
     Function to handle incoming messages of type "Reconnect_accepted" from server
     """
 
-    # inform user of reconnection accepted
-    print(f"Reconenction accepted. Updated connection.id: {unserialized_message.data}")
-    logging.info(f" Reconnect - Accepted. Updated connection.id: {unserialized_message.data}")
-
     # set new connection id
     connection.id = unserialized_message.data
+
+    # inform user of reconnection accepted
+    print(f"reconnection - accepted. new conn id {connection.id}")
+    logging.info(f" reconnection - accepted. new conn id {connection.id}")
 
 def inbound_message_handler(connection):
     """
@@ -197,8 +204,10 @@ def inbound_message_handler(connection):
         except OSError as error:
 
             # inform user of error when thread can't read from socket
-            print(f"Error reading from Socket: {error} - Suspending inbound_message_handler")
-            logging.error(f"Message - Error {error} reading message from server. Suspending inbound_message_handler")
+            print(f"system - err {error} when reading message from server")
+            print(f"system - suspending inbound_message_handler")
+            logging.error(f"system - err {error} when reading message from server")
+            logging.info(f" system - suspending inbound_message_handler")
 
             # stop / suspend inbound_message_handler thread
             break
@@ -207,8 +216,10 @@ def inbound_message_handler(connection):
         except EOFError as error:
 
             # inform user of error when incomplete message arrives from peer due to disruption / failure
-            print("Error reading from Socket. Suspending inbound_message_handler")
-            logging.error(f"Message - Error {error} reading message from server. Suspending inbound_message_handler")
+            print(f"system - err {error} when reading message from server")
+            print(f"system - suspending inbound_message_handler")
+            logging.error(f"system - err {error} when reading message from server")
+            logging.info(f" system - suspending inbound_message_handler")
 
             # stop / suspend inbound_message_handler thread
             break
@@ -228,8 +239,10 @@ def check_heartbeat(connection):
         if current_time - connection.last_heartbeat_ack > 3 * HEARTBEAT_INTERVAL:
 
             # inform user of missed heartbeats
-            print("Heartbeats not recieved from server. Disconnecting from server...")
-            logging.info(f" Heartbeats - Heartbeats not recieved from server. Suspending check_heartbeat and Dsconnecting from server")
+            print(f" heartbeat - multiple missed heartbeats from server.")
+            print(f" system - Suspending check_heartbeat. Disconnecting from server")
+            logging.info(f" heartbeat - multiple missed heartbeats from server.")
+            logging.info(f" system - Suspending check_heartbeat. Disconnecting from server")
 
             # close connection
             end_connection(connection)
@@ -254,12 +267,16 @@ def connection_handler(connection):
     # spawn a new thread to handle inbound messages from server
     inbound_message_thread = threading.Thread(target=inbound_message_handler, args=(connection,))
     inbound_message_thread.start()
-    logging.debug(f"Connection - Started inbound_message_handler thread for connection {connection.id}")
+    
+    # log thread start
+    logging.debug(f"system - started inbound_message_handler thread")
 
     # spawn a new thread to check incoming heartbeats from server
     check_heartbeat_thread = threading.Thread(target=check_heartbeat, args=(connection,))
     check_heartbeat_thread.start()
-    logging.debug(f"Connection - Started check_heartbeat thread for connection {connection.id}")
+
+    # log thread start
+    logging.debug(f"system - started check_heartbeat thread")
 
     # run all threads until completed
     inbound_message_thread.join()
@@ -280,8 +297,8 @@ def attempt_reconnection(connection):
     except OSError:
 
         # inform user of issues reconnecting
-        print("unable to reconnect to server, trying again in 10 seconds...")
-        logging.info(f" Reconnect - Unable to reconnect to server, trying again in 10 seconds...")
+        print(f"reconnection - server unreachable, trying again in 10 seconds...")
+        logging.info(f" reconnection - server unreachable, trying again in 10 seconds...")
 
         # wait 10 seconds
         time.sleep(10)
@@ -302,8 +319,8 @@ def server_handler(peer_address, former_connection = None):
 
             # estabislih connection
             conn.connect(peer_address)
-            print(f"Connection to server at {peer_address}")
-            logging.info(f" Connection - Connected to Server at {peer_address}")
+            print(f"connection - connected to server at {peer_address}")
+            logging.info(f" connection - connected to server at {peer_address}")
 
             # instantiate connection object
             connection = Connection(conn, peer_address)
@@ -322,8 +339,10 @@ def server_handler(peer_address, former_connection = None):
 
                 # send greeting message to peer
                 send_message(connection.conn, "Greeting", connection.sequence_length, CLIENT_NAME)
-                print("sent greeting message")
-                logging.info(f" Message - Sent greeting message to Server at {connection.addr}")
+
+                # log greeting
+                print(f"message - sent greeting")
+                logging.info(f" message - sent greeting")
 
             else:
 
@@ -332,8 +351,11 @@ def server_handler(peer_address, former_connection = None):
 
                 # send reconnect message to server with previous connection_id and last message recieved by this client
                 send_message(connection.conn, "reconnect_attempt", (former_connection.id, former_connection.uint32_numbers_recieved[-1]), CLIENT_NAME)
+                
+                # log reconnect_attempt
                 print("sent reconnection message")
-                logging.info(f" Message - Sent reconnection message to Server at {connection.addr} with info in tuple of {former_connection.id} and {former_connection.uint32_numbers_recieved[-1]}")
+                logging.info("sent reconnection message")
+                logging.debug(f"message - sent reconnection for {former_connection.id} via conn id {connection.id} with last sequence payload of {former_connection.uint32_numbers_recieved[-1]}")
 
 
             # spawn a new thread to handle inbound messages from the peer
@@ -342,7 +364,7 @@ def server_handler(peer_address, former_connection = None):
             connection_handler_thread.join()
 
             # inform the user connection_handler started
-            logging.debug(f"Started connection_handler thread for connection {connection.id}")
+            logging.debug(f"system - started connection_handler thread for connection {connection.id}")
 
         # stop threads and close connection if keyboard interrupt
         except KeyboardInterrupt:
@@ -351,7 +373,7 @@ def server_handler(peer_address, former_connection = None):
             end_connection(connection)
 
             # inform the user of Keyboard Interrupt
-            logging.info(f" System - Stopped due to Keyboard Interrupt")
+            logging.info(f" system - stopped due to keyboard interrupt")
 
 def main():
     """
@@ -377,14 +399,10 @@ def main():
     except OSError:
 
         # inform user of OSError
-        print("Unable to connect to server. Has the Server and/or proxy server been started?")
-        logging.info(f" System - Unable to connect to server. Has the Server and/or proxy server been started?")
+        print("system - unable to connect to server. Has the Server and/or proxy server been started?")
+        logging.info(f" system - unable to connect to server. as the Server and/or proxy server been started?")
 
 if __name__ == "__main__":
-
-    # print client name to console
-    print(f"===== Client - starting {CLIENT_NAME} =====")
-    logging.info(f" ===== Client - starting {CLIENT_NAME} =====")
 
     # Configure logging
     logging.basicConfig(
@@ -392,6 +410,10 @@ if __name__ == "__main__":
     filename=LOG_FILE_PATH,
     format=f'[%(asctime)s] - Client - {CLIENT_NAME} - %(levelname)s - %(message)s',
     datefmt='%m-%d %H:%M:%S')
+
+    # print client name to console
+    print(f"===== Client - starting {CLIENT_NAME} =====")
+    logging.info(f" ===== Client - starting {CLIENT_NAME} =====")
 
     # start client main
     main()
