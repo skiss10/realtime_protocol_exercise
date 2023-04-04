@@ -279,7 +279,7 @@ def reconnection_attempt_message_handler(connection, message):
                 connection.all_uint32_numbers = stored_connection_object.all_uint32_numbers
 
                 # get previously sent numbers from stored_connection_object
-                connection.sent_uint32_numbers =  stored_connection_object.all_uint32_numbers[:stored_connection_object.all_uint32_numbers.index(last_uint32_num)+1]
+                connection.sent_uint32_numbers =  stored_connection_object.all_uint32_numbers[:stored_connection_object.all_uint32_numbers.index(last_uint32_num) + 1]
 
                 # set queued_uint32_numbers on new connection as list of remaining messages to send
                 connection.queued_uint32_numbers = stored_connection_object.all_uint32_numbers[stored_connection_object.all_uint32_numbers.index(last_uint32_num) + 1:]
@@ -409,13 +409,13 @@ def send_heartbeat(connection):
 
         # check session state before sending heartbeats
         if connection.state in ['initial_connection', 'reconnected']:
+            time.sleep(HEARTBEAT_INTERVAL)
 
             # send heartbeats
             try:
                 send_message(connection.conn, "Heartbeat" , "", SERVER_NAME)
                 print(f"Sent Heartbeat to {connection.client_id}")
                 logging.debug(f"Heartbeat - Sent Heartbeat to {connection.client_id}")
-                time.sleep(HEARTBEAT_INTERVAL)
 
             # handle issue sending outbound data to peer. This is not a realistic failure scenario for an Ably client so will break loop / thread
             except OSError as error:
