@@ -6,10 +6,10 @@ Date: 01/23/2023
 """
 
 # This variable is a global variable for controlling the logging level - Options: 'DEBUG' , 'INFO'
-LOG_LEVEL = 'DEBUG'
+LOG_LEVEL = 'INFO'
 
 # This variable is a global variable for the path of the log file
-LOG_FILE_PATH = './app.log'
+LOG_FILE_PATH = './logs/app.log'
 
 # Set heartbeat interval in seconds
 HEARTBEAT_INTERVAL = 5
