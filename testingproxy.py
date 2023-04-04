@@ -27,12 +27,16 @@ def end_connection(connection):
     except OSError:
         print("Error closing the connections socket")
 
-def message_router(client_connection, server_connection):
+def message_router(connection_pair):
     """
     Function to route messages accordingly
     """
 
-    # start separate threads to handle inbound and outbound message routing for each socket
+    # decouple pair
+    client_connection = connection_pair[0]
+    server_connection = connection_pair[1]
+
+    # start separate threads to handle inbound and outbound message routing for each connection in pair
     client_message_router = threading.Thread(target=client_router, args=(client_connection, server_connection))
     server_message_router = threading.Thread(target=server_router, args=(client_connection, server_connection))
 
@@ -111,20 +115,44 @@ def main():
     Main function to handle proxy connections
     """
 
-    # set up proxy server
     try:
+        # create proxy socket
         proxy_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Inform OS to allow socket to use a given local address even if its in use by another program
+        proxy_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # define the address to use
         proxy_server_address = ('localhost', 12332)
+
+        # bind the socket to that address and start listening for connections
         proxy_server_socket.bind(proxy_server_address)
         proxy_server_socket.listen(5)
         print(f'Proxy Server started on {proxy_server_address[0]}:{proxy_server_address[1]}')
 
-        # listen for new client connections
+        # create a list of tuples representing connection pairs: (client, server)
+        connection_pair_list = []
+
+        # create connection counter
+        connection_pair_counter = 0
+    
+    except OSError as error:
+        if error.errno == 48:
+            print("Hitting interrupt for proxy")
+            proxy_server_socket.close()
+
+
+    try:
+
+        # continuosly listen for new client connections
         while True:
 
             # assign variable to new socket connections
             client_socket, client_address = proxy_server_socket.accept()
             print(f'Client connected: {client_address[0]}:{client_address[1]}')
+
+            # increment connection counter
+            connection_pair_counter += 1
 
             # Set up another connection to the real server
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -136,40 +164,48 @@ def main():
             server_connection = Connection(server_socket, server_address)
             server_connection.addr = server_address
             server_connection.connection_thread_stopper = threading.Event()
-            server_connection.id = "SERVER_CONNECTION_FROM_PROXY"
-
-            # create list of connections and add server connection in there.
-            connection_list = [server_connection]
+            server_connection.id = f"server-{connection_pair_counter}"
 
             # create client_connection object
             client_connection = Connection(proxy_server_socket, proxy_server_address)
             client_connection.conn = client_socket
             client_connection.addr = client_address
             client_connection.connection_thread_stopper = threading.Event()
-            client_connection.id = "A_CLIENT_CONNECTION_FROM_PROXY"
+            client_connection.id = f"client-{connection_pair_counter}"
+
+            # create connection pair
+            connection_pair = (client_connection, server_connection)
 
             # add client connection object to connection list
-            connection_list.append(client_connection)
+            connection_pair_list.append(connection_pair)
 
             # start thread to route messages from client socket to server socket
-            message_router_thread = threading.Thread(target=message_router, args=(client_connection, server_connection))
+            message_router_thread = threading.Thread(target=message_router, args=(connection_pair,))
             message_router_thread.start()
 
     except OSError as error:
         if error.errno == 48:
-            print("Address for server is in use or not available. Please check server is running or wait a few more seconds")
+            # print("Address for server is in use or not available. Please check server is running or wait a few more seconds")
+            print(error)
 
     except KeyboardInterrupt:
+        print("hitting interrupt with new connections")
         print("Server stopped listening for new connections")
 
-        # check for connections
-        if len(connection_list) >= 1:
+        # close and unbind address from socket
+        proxy_server_socket.close()
+
+        # check for connection pair
+        if len(connection_pair_list) >= 1:
 
             # close sockets and stop threads for each connection
-            for connection_object in connection_list:
-                end_connection(connection_object)
-                print("All connection sockets closed and threads stopped for connect %s" , connection_object.id)
-        sys.exit()
+            for connection_pair in connection_pair_list:
+                end_connection(connection_pair[0])
+                end_connection(connection_pair[1])
+                print(f"All connection sockets closed and threads stopped for {connection_pair[0].id} and {connection_pair[1].id}")
+
+            # close program
+            sys.exit()
 
 if __name__ == '__main__':
     main()
