@@ -296,7 +296,7 @@ if __name__ == "__main__":
     logging.basicConfig(
     level=LOG_LEVEL,
     filename=LOG_FILE_PATH,
-    format=f'[%(asctime)s] Client - {CLIENT_NAME} - %(levelname)s: %(message)s',
+    format=f'[%(asctime)s] - Client - {CLIENT_NAME} - %(levelname)s - %(message)s',
     datefmt='%m-%d %H:%M:%S')
 
     logging.info(f"===== Client - starting {CLIENT_NAME} =====")

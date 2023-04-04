@@ -553,7 +553,7 @@ if __name__ == "__main__":
     logging.basicConfig(
     level=LOG_LEVEL,
     filename=LOG_FILE_PATH,
-    format=f'[%(asctime)s] Server - {SERVER_NAME} - %(levelname)s: %(message)s',
+    format=f'[%(asctime)s] - Server - {SERVER_NAME} - %(levelname)s - %(message)s',
     datefmt='%m-%d %H:%M:%S')
     
     logging.info("===== Server - starting %s =====", SERVER_NAME)
