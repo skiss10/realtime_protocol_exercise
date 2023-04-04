@@ -291,7 +291,7 @@ def inbound_message_handler(connection):
     Handler for all messages inbound to the client.
     """
 
-    # Continuous loop contingent on status of connection's threads
+    # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
 
         # retrieve inbound data from client
@@ -338,7 +338,7 @@ def check_heartbeat_ack(connection):
     Function to ensure heartbeats are being recieved from client
     """
 
-    # Continuous loop that considers status of other client threads
+    # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
 
         # get current timestamp
@@ -371,7 +371,7 @@ def send_heartbeat(connection):
     to the client
     """
 
-    # Continuous loop that considers status of other client threads
+    # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
 
         # check session state before sending heartbeats
@@ -452,6 +452,9 @@ def main():
     # start server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
+            # Inform OS to allow socket to use a given local address even if its in use by another program
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
             s.bind((host, port))
             s.listen(5)
             print("Server listening on port", port)
