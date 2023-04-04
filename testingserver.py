@@ -27,11 +27,14 @@ def send_checksum(connection):
     """
     Function to send checksum to client
     """
+
     # calculate checksum
     checksum = calculate_checksum(connection.sent_uint32_numbers)
 
     # send checksum number
     send_message(connection.conn, "Checksum", checksum, SERVER_NAME)
+
+    # log checksum
     print(f"sent checksum to client {connection.client_id} with payload: {checksum}")
     logging.info(f" Message - Sent Checksum message to client {connection.client_id} with payload: {checksum}")
 
@@ -49,10 +52,9 @@ def send_sequence(connection):
     # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
 
-        # get connection state from inbound message handlers before sending / continuing data stream
+        # check connection state before sending / continuing data stream
         if connection.state == "initial_connection":
 
-            # loop over all uint_32 numbers that we need to send
             try:
 
                 # loop over all numbers we need to send
@@ -63,6 +65,8 @@ def send_sequence(connection):
 
                     # send uint32 number
                     send_message(connection.conn, "Data", num, SERVER_NAME)
+
+                    # log message sent
                     print(f"sent messages to client {connection.client_id} with payload: {num}")
                     logging.info(f" Message - Sent message to client {connection.client_id} with payload: {num}")
 
@@ -70,8 +74,12 @@ def send_sequence(connection):
                     connection.sent_uint32_numbers.append(num)
 
             except OSError:
+
+                # log error
                 print("Unable to send messages over the socket. Suspending generate_message")
                 logging.error(f"Message - Unable to send messages over the socket. Suspending generate_message")
+
+                # suspending generate_message thread / function
                 break
             
             # send checksum 
@@ -82,6 +90,7 @@ def send_sequence(connection):
             # try sending user input messages to peer
             try:
 
+                # loop over numbers queued to send
                 for num in connection.queued_uint32_numbers:
 
                     # send next number in 1 second
@@ -89,6 +98,8 @@ def send_sequence(connection):
 
                     # send next uint32 number
                     send_message(connection.conn, "Data", num, SERVER_NAME)
+
+                    # log message sent
                     print(f"sent messages to client {connection.client_id} with payload: {num}")
                     logging.info(f" Messages -sending message to client {connection.client_id} over connection {connection.id} with payload {num}")
 
@@ -96,41 +107,65 @@ def send_sequence(connection):
                     connection.sent_uint32_numbers.append(num)
 
             except OSError:
+
+                # log error
                 print("Unable to send messages over the socket. Suspending generate_message")
                 logging.error(f"Message - Unable to send messages over the socket. Suspending generate_message")
+
+                # suspending generate_message thread / function
                 break
 
             # send checksum
             send_checksum(connection)
 
-        else:
-            pass
-
 def end_connection(connection):
     """
     Function to stop all threads and close all sockets for a given connection
     """
+
     # stop threads related to connection
     try:
+        
+        # check status of connection_thread_stopper
         if not connection.connection_thread_stopper.is_set():
-            connection.connection_thread_stopper.set()
-            print("threads for connection are flagged to stop")
-            logging.info(f" Connection - Threads for connection {connection.id} to client {connection.client_id} are flagged to stop")
 
-    except OSError:
-        print("Error stopping the connection's theads")
+            # set connection's threads to stop
+            connection.connection_thread_stopper.set()
+
+            # log stopping threads
+            print(f"connection - conn id {connection.id} stopping threads")
+            logging.info(f" connection - conn id {connection.id} stopping threads")
+
+    # handle OSError stopping connection's threads
+    except OSError as error:
+
+        # log error
+        print(f"system - err {error} conn id {connection.id} when stopping threads")
+        logging.error(f"system - err {error} conn id {connection.id} when stopping threads")
+
 
     # close the connection's socket
     try:
+
+        # check connection state
         if connection.state != "closed":
+
+            # set connection state to closed
             connection.state = "closed"
+
+            # close connection
             connection.conn.close()
+
+            # log closing connection
             print(f"socket connection_id {connection.id} closed pointing to client {connection.client_id}")
             logging.info(f" Connection - Closed socket connection_id {connection.id} to client {connection.client_id}")
 
-    except OSError:
-        print(f"Error closing connection socket for {connection.id}")
-        logging.error(f"Connection - Error closing the connections socket for {connection.id}")
+    # handle OSError closing connection's socket
+    except OSError as error:
+
+        # log error
+        print(f"system - err {error} conn id {connection.id} when closing sockets")
+        logging.error(f"system - err {error} conn id {connection.id} when closing sockets")
 
 def client_handler(connection):
     """
@@ -140,28 +175,38 @@ def client_handler(connection):
     # spawn a new thread to handle inbound messages from client
     inbound_messages_thread = threading.Thread(target=inbound_message_handler, args=(connection,))
     inbound_messages_thread.start()
+
+    # log starting thread
     logging.debug(f"Started inbound_message_handler thread for connection {connection.id}")
 
     # spawn a new thread to monitor heartbeats_acks from the client
     heartbeat_ack_thread = threading.Thread(target=check_heartbeat_ack, args=(connection,))
     heartbeat_ack_thread.start()
+
+    # log starting thread
     logging.debug(f"Started check_heartbeat_ack thread for connection {connection.id}")
 
     # spawn a new thread to send messages to the peer
     send_sequence_thread = threading.Thread(target=send_sequence, args=(connection,))
     send_sequence_thread.start()
+
+    # log starting thread
     logging.debug(f"Started generate_message thread for connection {connection.id}")
 
     # spawn a new thread to send heartbeats to the client
     heartbeat_thread = threading.Thread(target=send_heartbeat, args=(connection,))
     heartbeat_thread.start()
+
+    # log starting thread
     logging.debug(f"Started send_heartbeat thread for connection {connection.id}")
 
 def greeting_message_handler(connection, message):
     """
     Function to handle client greeting message
     """
+
     try:
+
         # assign client_id for connection
         connection.client_id = message.sender_id
         logging.debug(f"Connection - client_id for connection {connection.id} updated to {connection.client_id}")
@@ -183,6 +228,8 @@ def greeting_message_handler(connection, message):
         logging.info(f" Message - Greeting_ack sent over connection {connection.id} to {connection.client_id}")
 
     except OSError as error:
+
+        # log error handling greeting
         print("OSError hit attemptng send Greeting_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
         logging.error(f"Message - error {error} sending greeting_ack over {connection.id} to {connection.client_id}")
 
@@ -193,6 +240,8 @@ def reconnection_attempt_message_handler(connection, message):
 
     # assign client_id for connection
     connection.client_id = message.sender_id
+
+    # log updated client_id
     print(f"reconnection attempt from client {connection.client_id}")
     logging.info(f" Reconnection - recieved reconnection attempt from {connection.client_id} over connection_id {connection.id}")
 
@@ -223,16 +272,17 @@ def reconnection_attempt_message_handler(connection, message):
             # see if the last heartbeat ack was recieved within the reconnection window
             if current_time - stored_connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
 
+                # log successful reconnection
                 print("successful reconnect attempt")
                 logging.info(f" Reconnection - Successful reconnection attempt from {message.sender_id}")
 
                 # update last_heartbeat so check_session_store removes the connection sooner but gives reconnection_attempt_message_handler enough time to get needed data
                 stored_connection_object.last_heartbeat_ack = time.time() - 58
 
-                # pick up stream where it left off
+                # transfer requested numbers from old connection
                 connection.all_uint32_numbers = stored_connection_object.all_uint32_numbers
 
-                # get previously sent numbers from stored_connection_object
+                # get previously sent numbers up to last message num in sequence reported by client
                 connection.sent_uint32_numbers =  stored_connection_object.all_uint32_numbers[:stored_connection_object.all_uint32_numbers.index(last_uint32_num) + 1]
 
                 # set queued_uint32_numbers on new connection as list of remaining messages to send
@@ -248,11 +298,12 @@ def reconnection_attempt_message_handler(connection, message):
                 # send reconnection success message
                 send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
 
-
             else:
 
                 # reject reconnection attempt
                 send_message(connection.conn, "Reconnect_rejected", "timeout", send_message)
+
+                # log reconnection rejected
                 print(f"reconnection request from {message.sender_id} rejected because the reconnection window timed out")
                 logging.info(f" Reconnection - Failed reconnection attempt from {message.sender_id} because reconnection window timed out")
 
@@ -263,6 +314,8 @@ def reconnection_attempt_message_handler(connection, message):
 
         # reject reconnection attempt
         send_message(connection.conn, "Reconnect_rejected", "no_recorded_state", send_message)
+
+        # log reconnection rejected
         print(f"reconnect request from {message.sender_id} was rejected as there is no record of the provided connection_id")
         logging.info(f" Reconnection - Failed reconnection attempt from {message.sender_id} as there is no record of the provided connection_id")
 
@@ -273,16 +326,21 @@ def heartbeat_ack_message_handler(connection):
     """
     Function to handle heartbeat ack messages from client
     """
+
     try:
         # aquire lock to update shared last_heartbeat_ack variable in other threads
         with connection.threading_lock:
 
             # update last heartbeat ack timestamp
             connection.last_heartbeat_ack = time.time()
+
+            # log heartbeat ack update
             logging.debug(f"Heartbeat_ack - Updated heartbeat_ack timestamp for connection {connection.id}")
 
 
     except OSError as err:
+
+        # log error
         print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack. stopping inbound_message_handler thread for connection, %s", connection.client_id)
         logging.error(f"Heartbeat_ack - error {err} updating heartbeat_ack timestamp for connection {connection.id}")
 
@@ -296,10 +354,14 @@ def inbound_message_handler(connection):
 
         # retrieve inbound data from client
         try:
+
+            # listen for messages over connection
             serialized_message = connection.conn.recv(1024)
 
             # unserialize data from socket
             message = pickle.loads(serialized_message)
+
+            # log new message recieved
             print(f"Received message type {message.name} from {message.sender_id} with data: {message.data}" )
             logging.info(f" Message - Received message type {message.name} on connection {connection.id} from {message.sender_id} with data: {message.data}")
 
@@ -321,16 +383,22 @@ def inbound_message_handler(connection):
 
         # handle socket read errors
         except OSError as error:
+
+            # log error
             print("Issue recieving data. stopping inbound_message_handler for connection %s", connection.client_id)
             logging.error(f"Message - Error {error} recieving data from {connection.client_id} over connection {connection.id}. Stopping inbound_message_handler for {connection.id}")
 
-            # handle corrupted inbound data from peer. This is not a realistic failure scenario for an Ably client so will break loop
+            # stop / suspend inbound_message_handler
             break
 
         # handle corrupted inbound data from peer. This is not a realistic failure scenario for an Ably client so will break loop
         except EOFError as error:
+
+            # log error
             print("recieved corrupted data from peer. Peer likely closed connection. suspending inbound_message_handler for %s", connection.client_id)
             logging.error(f"Message - Error {error}. Recieved corrupted data from {connection.client_id}. Peer likely closed connection. suspending inbound_message_handler for {connection.id}")
+            
+            # stop / suspend inbound_message_handler
             break
 
 def check_heartbeat_ack(connection):
@@ -345,17 +413,16 @@ def check_heartbeat_ack(connection):
         current_time = time.time()
 
         try:
-            with connection.threading_lock:
 
-                # check for three missed heartbeats
-                if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
-                    print(f"Heartbeat_acks are not being recieved from client. Disconnecting Client {connection.client_id}")
-                    logging.info(f" Heartbeats - Heartbeat_acks are not being recieved from {connection.client_id} over {connection.id}. Disconnecting Client {connection.client_id}")
-                    # close threads and socket
-                    end_connection(connection)
+            # check for three missed heartbeats
+            if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
+                print(f"Heartbeat_acks are not being recieved from client. Disconnecting Client {connection.client_id}")
+                logging.info(f" Heartbeats - Heartbeat_acks are not being recieved from {connection.client_id} over {connection.id}. Disconnecting Client {connection.client_id}")
+                # close threads and socket
+                end_connection(connection)
 
-                    #break loop
-                    break
+                #break loop
+                break
 
         except OSError as error:
             print("OSError hit attemptng to aquire the threading lock to update the connection's last_heartbeat_ack for connection %s" , connection.client_id)
