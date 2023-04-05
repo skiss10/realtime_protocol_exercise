@@ -4,9 +4,9 @@ TODO
 
 - implement load balancer for incoming requests (behind proxy) that load balances incoming requests with hash ring
 
-- figure out testing
+- figure out testing (Some test mechanism must be provided with a calear pass/fail outcome; it is allowed for this to use both the client and server (ie it is not necessary to write any independent mock client or server). In order to support the testing it is allowable to add support for additional commandline arguments or a programmatic interface, for client and/or serve)
 
-- add a README 
+- add a README (A README must be included that states how to build, run, and test.Any assumptions made about the underlying network/transport must be documented. If there are limits arising from the protocol design (eg max number of concurrent connections, max number of messages) then these should be stated.)
 
 - put older files into an archive directory with an explaination in readme why they're there
 
