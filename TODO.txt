@@ -1,7 +1,5 @@
 TODO
 
-- update proxy file to use with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn: for context management
-
 - figure out testing
 
 - add a README 
