@@ -131,8 +131,8 @@ def reconnection_attempt_message_handler(connection, message):
     connection.client_id = message.sender_id
 
     # log updated client_id
-    print(f"reconnection - recieved reconnection attempt from {connection.client_id} over connection_id {connection.id}")
-    logging.info(f" reconnection - recieved reconnection attempt from {connection.client_id} over connection_id {connection.id}")
+    print(f"reconnection - recieved reconnection attempt from client {connection.client_id} over connection_id {connection.id}")
+    logging.info(f" reconnection - recieved reconnection attempt from client {connection.client_id} over connection_id {connection.id}")
 
     # boolean to see if connection object exists
     connection_id_not_found = True
