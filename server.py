@@ -10,6 +10,7 @@ import pickle
 import logging
 import sys
 import struct
+import random
 
 from utils.connection import Connection
 from utils.session_store import InMemoryStore
@@ -22,6 +23,20 @@ SERVER_NAME = str(uuid.uuid4())
 
 # define server interface with memory store
 SESSION_STORAGE = InMemoryStore()
+
+def generate_prng_sequence(n):
+    """
+    Function to generate pseudo-random numbers
+    """
+
+    # initialize the random number generator with a random seed
+    random.seed()
+
+    # create sequence
+    sequence = [random.randint(0, 2**32-1) for _ in range(n)]
+
+    # convert each number to bytes (big-endian)
+    return [struct.pack('>I', num) for num in sequence]
 
 def end_connection(connection):
     """
@@ -106,7 +121,7 @@ def greeting_message_handler(connection, message):
         logging.debug(f"connection - conn id {connection.id} to client {connection.client_id} has sequence length {connection.sequence_length}")
 
         # generate uint32 numbers to be sent over connection
-        connection.all_uint32_numbers = [struct.pack('>I', num) for num in range(1, connection.sequence_length+1)]
+        connection.all_uint32_numbers = generate_prng_sequence(connection.sequence_length)
 
         # set connection state
         connection.state = "initial_connection"
