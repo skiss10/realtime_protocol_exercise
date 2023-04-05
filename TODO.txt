@@ -1,5 +1,9 @@
 TODO
 
+- implement redis session store with multiple servers (use multiprocessing with servers)
+
+- implement load balancer for incoming requests (behind proxy) that load balances incoming requests with hash ring
+
 - figure out testing
 
 - add a README 
