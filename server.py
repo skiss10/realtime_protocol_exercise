@@ -105,6 +105,9 @@ def send_checksum(connection):
     # end the connection after sending checksum
     end_connection(connection)
 
+    # set connection state to completed
+    connection.state = "completed"
+
 def greeting_message_handler(connection, message):
     """
     Function to handle client greeting message
@@ -530,6 +533,11 @@ def check_session_store():
                     print(f"storage - adding {connection_object.id} to session removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
                     logging.info(f" storage - adding {connection_object.id} to session removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
 
+                # check if connection has already sent sequence and is ready to be removed from session store
+                if connection_object.state == "completed":
+                    
+                    # add connection to list for removal
+                    stale_connections.append(connection_object)
 
         except OSError as error:
             
