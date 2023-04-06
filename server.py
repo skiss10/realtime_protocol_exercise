@@ -560,8 +560,8 @@ def check_session_store():
                 SESSION_STORAGE.delete(connection_object.id)
 
                 # log removal of connection from session storage
-                print(f"storage - removed stale connection {connection_object.id} from session_store")
-                logging.info(f" storage - removed stale connection {connection_object.id} from session_store")
+                print(f"storage - removed connection {connection_object.id} from session_store")
+                logging.info(f" storage - removed connection {connection_object.id} from session_store")
 
         # sleep thread checking for stale connections
         time.sleep(1)
