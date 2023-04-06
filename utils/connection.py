@@ -28,7 +28,4 @@ class Connection:
         self.sent_uint32_numbers = []
         self.uint32_numbers_recieved = []
         self.checksum = None
-        # self.continue_stream_from = None
-        # self.last_num_sent = 0 #TODO potentially remove this
-        # self.last_num_recv = None #TODO potentially remove this
 

@@ -1,8 +1,18 @@
+"""
+Proxy server to sit between server and clients for
+simulated disconnections.
+
+Author: Stephen Kiss (stephenkiss986@gmail.com)
+Date: 01/23/2023
+"""
+
+
 import socket
 import threading
 import sys
 
 from utils.connection import Connection
+from constants import SERVER_DEFAULT_PORT, PROXY_DEFAULT_PORT
 
 def end_connection(connection):
     """
@@ -115,6 +125,20 @@ def main():
     Main function to handle proxy connections
     """
 
+    # set default port (proxy port)
+    proxy_port = PROXY_DEFAULT_PORT
+
+    # handle optional input paramater for port
+    if len(sys.argv) > 1:
+        proxy_port = int(sys.argv[1])
+
+    # set default port (server port)
+    server_port = SERVER_DEFAULT_PORT
+
+    # handle optional input paramater for port
+    if len(sys.argv) > 2:
+        server_port = int(sys.argv[2])
+
     # create server socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as proxy_server_socket:
 
@@ -124,7 +148,7 @@ def main():
             proxy_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
             # define the address to use
-            proxy_server_address = ('localhost', 12332)
+            proxy_server_address = ('localhost', proxy_port)
 
             # bind the socket to that address and start listening for connections
             proxy_server_socket.bind(proxy_server_address)
@@ -156,7 +180,7 @@ def main():
 
                 # Set up another connection to the real server
                 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                server_address= ('localhost', 12331)
+                server_address= ('localhost', server_port)
                 server_socket.connect(server_address)
                 print(f'Conected to server {server_address[0]}:{server_address[1]}')
 

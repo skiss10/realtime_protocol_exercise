@@ -1,6 +1,10 @@
 """
 Socket client
+
+Author: Stephen Kiss (stephenkiss986@gmail.com)
+Date: 01/23/2023
 """
+
 
 import socket
 import threading
@@ -11,7 +15,7 @@ import logging
 import sys
 import random
 
-from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, SERVER_DEFAULT_PORT
 from utils.message_sender import send_message
 from utils.connection import Connection
 from utils.checksum import calculate_checksum
@@ -311,7 +315,7 @@ def attempt_reconnection(connection):
         # try reconnecting again
         attempt_reconnection(connection)
    
-def server_handler(peer_address, former_connection = None):
+def server_handler(peer_address, former_connection = None, sequence_length = None):
     """
     Function to connection to a peer socket server
     """
@@ -333,8 +337,16 @@ def server_handler(peer_address, former_connection = None):
             # set connection object peer address tuple
             connection.addr = peer_address
 
-            # set sequence length / generate sequence lengeth if not explictly set on command line
-            connection.sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
+            # adding this conditional for test.py
+            if sequence_length is None:
+
+                # set sequence length / generate sequence lengeth if not explictly set on command line
+                connection.sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
+
+            else:
+
+                # test with a default sequence_length of 11
+                connection.sequence_length = 11
 
             # define variable to stop threads associated with connection
             connection.connection_thread_stopper = threading.Event()
@@ -388,8 +400,12 @@ def main():
     # define peer location
     host = '127.0.0.1'
 
-    # handle input paramater for port
-    port = int(sys.argv[1])
+    # set default port (server port)
+    port = SERVER_DEFAULT_PORT
+
+    # handle optional input paramater for port
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
 
     # peer address tuple
     peer_address = (host, port)
@@ -404,8 +420,8 @@ def main():
     except OSError:
 
         # inform user of OSError
-        print("system - unable to connect to server. Has the Server and/or proxy server been started?")
-        logging.info(f" system - unable to connect to server. as the Server and/or proxy server been started?")
+        print("system - unable to connect to server. Has the Server and/or proxy server been started? Is the port > 1023?")
+        logging.info(f" system - unable to connect to server. as the Server and/or proxy server been started? Is the port > 1023?")
 
 if __name__ == "__main__":
 

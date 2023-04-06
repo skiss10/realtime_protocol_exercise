@@ -1,26 +1,14 @@
-TODO
 
-- implement redis session store with multiple servers (use multiprocessing with servers)
+TODO Future:
 
-- implement load balancer for incoming requests (behind proxy) that load balances incoming requests with hash ring
+- Implement a checksum ack from the client to the server to indicate that the server is ready to end that connection
 
-- figure out testing (Some test mechanism must be provided with a calear pass/fail outcome; it is allowed for this to use both the client and server (ie it is not necessary to write any independent mock client or server). In order to support the testing it is allowable to add support for additional commandline arguments or a programmatic interface, for client and/or serve)
+- Expand on testing. Look into using magic mock or decoupling functions in server.py and client.py from the connection object input paramter
 
-- add a README (A README must be included that states how to build, run, and test.Any assumptions made about the underlying network/transport must be documented. If there are limits arising from the protocol design (eg max number of concurrent connections, max number of messages) then these should be stated.)
-
-- put older files into an archive directory with an explaination in readme why they're there
-
-- add info about requirements.txt to README
-
-- reference TODO in readme
-
-
-Future:
-
-- Run multiple servers and load balance incoming requests (will need to update testingproxy.py and testingserver.py to handle server failures)
+- Update proxy.py and server.py to gracefully handle server failures
 
 - Add a variable to constants.py to choose from one of various connection types (SSE vs. raw socket. vs. gRPC)
 
-Items to monitor:
+- implement load balancer for incoming requests (behind proxy) that load balances incoming requests with hash ring
 
-- figure out why the client wasn't recieving the first message despite it being sent by the server
+- implement redis session store with multiple servers (use multiprocessing with servers)
