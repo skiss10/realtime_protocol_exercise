@@ -502,7 +502,8 @@ def client_handler(connection):
 
 def check_session_store():
     """
-    Function to ensure heartbeats are being recieved from client
+    Function to keep session storage fresh based on each connection's
+    last_heartbeat_ack. If over RECONNECT_WINDOW, remove it from storage
     """
 
     # log starting check_session_store
