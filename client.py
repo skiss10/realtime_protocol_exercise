@@ -56,8 +56,8 @@ def end_connection(connection):
             connection.conn.close()
 
             # log closing connection
-            print(f"connection - conn id {connection.id} stopped")
-            logging.info(f" connection - conn id {connection.id} closed")
+            print(f"connection - conn id {connection.id} is closed")
+            logging.info(f" connection - conn id {connection.id} is closed")
 
     # handle OSError closing connection's socket
     except OSError as error:
