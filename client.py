@@ -1,6 +1,10 @@
 """
 Socket client
+
+Author: Stephen Kiss (stephenkiss986@gmail.com)
+Date: 01/23/2023
 """
+
 
 import socket
 import threading
@@ -11,7 +15,7 @@ import logging
 import sys
 import random
 
-from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, SERVER_DEFAULT_PORT
 from utils.message_sender import send_message
 from utils.connection import Connection
 from utils.checksum import calculate_checksum
@@ -396,8 +400,8 @@ def main():
     # define peer location
     host = '127.0.0.1'
 
-    # set default port
-    port = 12331
+    # set default port (server port)
+    port = SERVER_DEFAULT_PORT
 
     # handle optional input paramater for port
     if len(sys.argv) > 1:
@@ -416,8 +420,8 @@ def main():
     except OSError:
 
         # inform user of OSError
-        print("system - unable to connect to server. Has the Server and/or proxy server been started?")
-        logging.info(f" system - unable to connect to server. as the Server and/or proxy server been started?")
+        print("system - unable to connect to server. Has the Server and/or proxy server been started? Is the port > 1023?")
+        logging.info(f" system - unable to connect to server. as the Server and/or proxy server been started? Is the port > 1023?")
 
 if __name__ == "__main__":
 
