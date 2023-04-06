@@ -16,3 +16,9 @@ HEARTBEAT_INTERVAL = 5
 
 # set reconnect window in seconds after which reconnection attemps are rejected and server removes connection info from session_storage
 RECONNECT_WINDOW = 30
+
+# set default server port
+SERVER_DEFAULT_PORT = 49155
+
+# set default proxy port
+PROXY_DEFAULT_PORT = 49156
