@@ -311,7 +311,7 @@ def attempt_reconnection(connection):
         # try reconnecting again
         attempt_reconnection(connection)
    
-def server_handler(peer_address, former_connection = None):
+def server_handler(peer_address, former_connection = None, sequence_length = None):
     """
     Function to connection to a peer socket server
     """
@@ -333,8 +333,16 @@ def server_handler(peer_address, former_connection = None):
             # set connection object peer address tuple
             connection.addr = peer_address
 
-            # set sequence length / generate sequence lengeth if not explictly set on command line
-            connection.sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
+            # adding this conditional for test.py
+            if sequence_length is None:
+
+                # set sequence length / generate sequence lengeth if not explictly set on command line
+                connection.sequence_length = int(sys.argv[2]) if len(sys.argv) > 2 else random.randint(1, 0xffff)
+
+            else:
+
+                # test with a default sequence_length of 11
+                connection.sequence_length = 11
 
             # define variable to stop threads associated with connection
             connection.connection_thread_stopper = threading.Event()
@@ -388,8 +396,12 @@ def main():
     # define peer location
     host = '127.0.0.1'
 
-    # handle input paramater for port
-    port = int(sys.argv[1])
+    # set default port
+    port = 12331
+
+    # handle optional input paramater for port
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
 
     # peer address tuple
     peer_address = (host, port)
