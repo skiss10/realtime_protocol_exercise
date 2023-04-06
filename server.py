@@ -1,6 +1,10 @@
 """
 Socket server
+
+Author: Stephen Kiss (stephenkiss986@gmail.com)
+Date: 01/23/2023
 """
+
 
 import socket
 import threading
@@ -16,7 +20,7 @@ from utils.connection import Connection
 from utils.session_store import InMemoryStore
 from utils.message_sender import send_message
 from utils.checksum import calculate_checksum
-from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, RECONNECT_WINDOW
+from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, RECONNECT_WINDOW, SERVER_DEFAULT_PORT
 
 # create a unique server name
 SERVER_NAME = str(uuid.uuid4())
@@ -24,7 +28,7 @@ SERVER_NAME = str(uuid.uuid4())
 # define server interface with memory store
 SESSION_STORAGE = InMemoryStore()
 
-def generate_prng_sequence(n):
+def generate_prng_sequence(sequence_length):
     """
     Function to generate pseudo-random numbers
     """
@@ -33,7 +37,7 @@ def generate_prng_sequence(n):
     random.seed()
 
     # create sequence
-    sequence = [random.randint(0, 2**32-1) for _ in range(n)]
+    sequence = [random.randint(0, 2**32-1) for _ in range(sequence_length)]
 
     # convert each number to bytes (big-endian)
     return [struct.pack('>I', num) for num in sequence]
@@ -244,7 +248,6 @@ def heartbeat_ack_message_handler(connection):
             # log heartbeat ack update
             logging.debug(f"heartbeat - updated heartbeat_ack timestamp on conn id {connection.id}")
 
-
     except OSError as err:
 
         # log error
@@ -325,7 +328,7 @@ def check_heartbeat_ack(connection):
             if current_time - connection.last_heartbeat_ack > HEARTBEAT_INTERVAL * 3:
 
                 # log heartbeat_acks missing
-                print(f" heartbeat - conn id {connection.id} to client {connection.client_id} not recieving heartbeat_acks")
+                print(f"heartbeat - conn id {connection.id} to client {connection.client_id} not recieving heartbeat_acks")
                 print(f"system - disconnecting client {connection.client_id}")
                 logging.info(f" heartbeat - conn id {connection.id} to client {connection.client_id} not recieving heartbeat_acks")
                 logging.info(f" system - disconnecting client {connection.client_id}")
@@ -573,7 +576,14 @@ def main():
 
     # define server address
     host = '127.0.0.1'
-    port = 12331
+
+    # set default port (server port)
+    port = SERVER_DEFAULT_PORT
+
+    # handle optional input paramater for port
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+
 
     # start thread to manage server session storage
     check_session_store_thread = threading.Thread(target=check_session_store, args=())
