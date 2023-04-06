@@ -235,7 +235,8 @@ def inbound_message_handler(connection):
 
 def check_heartbeat(connection):
     """
-    Function to check heartbeats coming from server
+    Function to check that last_heartbeat_ack timestame in connection
+    is being updated. Otherwise the connection is stale and needs to be dropped 
     """
 
     # continuous loop contingent on status of connection's threads
@@ -373,7 +374,6 @@ def server_handler(peer_address, former_connection = None, sequence_length = Non
                 print("message - sent reconnection message")
                 logging.info(" message - sent reconnection message")
                 logging.debug(f"message - sent reconnection for {former_connection.id} via conn id {connection.id} with last sequence payload of {former_connection.uint32_numbers_recieved[-1]}")
-
 
             # spawn a new thread to handle inbound messages from the peer
             connection_handler_thread = threading.Thread(target=connection_handler, args=(connection,))
