@@ -151,7 +151,6 @@ def handle_checksum(connection, unserialized_message):
     # send checksum_ack - failure
     send_message(connection.conn, "checksum_ack", "failure", CLIENT_NAME)
 
-
     # end connection
     end_connection(connection)
 
