@@ -5,6 +5,8 @@ Author: Stephen Kiss (stephenkiss986@gmail.com)
 Date: 01/23/2023
 """
 
+# pylint: disable=import-error
+# pylint: disable=wrong-import-position
 
 import unittest
 import threading
@@ -19,6 +21,9 @@ import server
 from utils.message_sender import send_message
 
 class TestServer(unittest.TestCase):
+    """
+    Class to test server
+    """
 
     def setUp(self):
         """
@@ -44,11 +49,11 @@ class TestServer(unittest.TestCase):
             conn.connect(self.peer_address)
         
             # set sequence length
-            self.sequence_length = 11
+            sequence_length = 11
 
             # spin up thread to send greeting message
-            self.send_greeting = threading.Thread(target=send_message, args=(conn, "Greeting", self.sequence_length, "TEST_CLIENT",))
-            self.send_greeting.start()
+            send_greeting = threading.Thread(target=send_message, args=(conn, "Greeting", sequence_length, "TEST_CLIENT",))
+            send_greeting.start()
 
             # monitor for new messages over the socket
             message = conn.recv(1024)
@@ -94,7 +99,10 @@ class TestServer(unittest.TestCase):
             self.assertEqual(unserialized_message.data, "no_recorded_state")
 
 class TestGeneratePRNGSequence(unittest.TestCase):
-    
+    """
+    Class to test random sequence generator
+    """
+
     def test_sequence_length(self):
         """
         Assert generate_prng_sequence sequence length
