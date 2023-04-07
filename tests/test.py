@@ -77,12 +77,9 @@ class TestServer(unittest.TestCase):
 
             # estabislih connection
             conn.connect(self.peer_address)
-        
-            # set sequence length
-            self.sequence_length = 11
 
-            self.send_greeting = threading.Thread(target=send_message, args=(conn, "reconnect_attempt", ("BAD_CONN_ID", "BAD_UINT32_NUM"), "TEST_CLIENT",))
-            self.send_greeting.start()
+            send_greeting = threading.Thread(target=send_message, args=(conn, "reconnect_attempt", ("BAD_CONN_ID", "BAD_UINT32_NUM"), "TEST_CLIENT",))
+            send_greeting.start()
 
             # recieve new messages over the socket
             message = conn.recv(1024)
@@ -143,7 +140,7 @@ class TestGeneratePRNGSequence(unittest.TestCase):
         # generate two sequences of length 5
         sequence1 = server.generate_prng_sequence(5)
         sequence2 = server.generate_prng_sequence(5)
-        
+
         # check that the sequences are not equal
         self.assertNotEqual(sequence1, sequence2)
 
