@@ -145,6 +145,13 @@ def handle_checksum(connection, unserialized_message):
         print(f"system - SUCCESS! local checksum and server checksum are equal")
         logging.info(f" system - SUCCESS! local checksum and server checksum are equal")
 
+        # send checksum_ack - success
+        send_message(connection.conn, "checksum_ack", "success", CLIENT_NAME)
+    
+    # send checksum_ack - failure
+    send_message(connection.conn, "checksum_ack", "failure", CLIENT_NAME)
+
+
     # end connection
     end_connection(connection)
 

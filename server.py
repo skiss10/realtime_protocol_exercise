@@ -109,9 +109,6 @@ def send_checksum(connection):
     print(f"checksum - sent checksum: {checksum} to client {connection.client_id}")
     logging.info(f" checksum - sent checksum: {checksum} to client {connection.client_id}")
 
-    # end the connection after sending checksum
-    end_connection(connection)
-
     # set connection state to completed
     connection.state = "completed"
 
@@ -257,6 +254,26 @@ def heartbeat_ack_message_handler(connection):
         print(f"heartbeat - error {err} updating heartbeat_ack timestamp for conn id {connection.id}")
         logging.error(f"heartbeat - error {err} updating heartbeat_ack timestamp for conn id {connection.id}")
 
+def checksum_ack_message_handler(connection, message):
+    """
+    Function to handle checksum_ack messages from client
+    """
+    
+    if message.data == "success":
+
+        # log sequence sent success
+        print(f"system - SUCCESS! client checksum and server checksum are equal")
+        logging.info(f" system - SUCCESS! client checksum and server checksum are equal")
+
+    else:
+        # log sequence sent failed
+        print(f"system - FAILED! client checksum and server checksum are not equal")
+        logging.info(f"system - FAILED! client checksum and server checksum are not equal")
+
+    # end the connection after sending checksum
+    end_connection(connection)
+
+
 def inbound_message_handler(connection):
     """
     Handler for all messages inbound to the client.
@@ -289,6 +306,10 @@ def inbound_message_handler(connection):
             # check if the messages is a reconnect
             if message.name == "reconnect_attempt":
                 reconnection_attempt_message_handler(connection, message)
+
+            # check if the messages is a checksum_ack
+            if message.name == "checksum_ack":
+                checksum_ack_message_handler(connection, message)
 
         # handle socket read errors
         except OSError as error:
