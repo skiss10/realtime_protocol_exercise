@@ -1,0 +1,46 @@
+https://www.websequencediagrams.com/#
+
+title BrokenConnection
+
+Storage->Storage: Start
+Server->Storage: check_session_store
+Storage-->Storage: Monitor for stale connections
+Server-->Server: Listen for inbound connections
+Proxy-->Proxy: Listen for inbound connections
+Client-> Proxy: Connection attempt
+Proxy-> Server: Connection attempt forwarded
+Server->Server: Connection identified. Start client_handler
+Server-->Server: Start inbound_message_handler
+Server-->Server: Start check_heartbeat_ack
+Server->Server: Start send_sequence
+Server-->Server: Start send_heartbeat
+Client->Proxy: Greeting
+Proxy->Server: Greeting forwarded
+Client->Client: Start connection_handler
+Client-->Client: Start inbound_message_handler
+Client-->Client: Start check_heartbeat
+Server->Proxy: Greeting_ack
+Proxy->Client: Greeting_ack forwarded
+Server->Server: generate prng sequence
+Server->Proxy: Send sequence message (one per second)
+Proxy->Client: Forward sequence message
+Server->Server: update sent_uint32_numbers
+Client->Client: Update uint32_numbers_recieved
+Server-->Proxy: Send heartbeat
+Proxy-->Client: Send heartbeat forwarded
+Client->Client: Update connection's last_heartbeat
+Proxy->Proxy: Keyboard Interrup
+Client-->Proxy: Heartbeat_ack fails
+Server->Server: No Heartbeat_ack detected
+Server->Server: Reconnection Window Passes
+Storage->Storage: Remove stale connection object
+Client->Client: No heartbeat detected
+Client-->Proxy: Attempt reconnection (every 10 seconds)
+Server->Server: Close socket. End connection threads
+Proxy-->Proxy: Listen for inbound connections
+Client->Proxy: Reconnection attempt
+Proxy->Server: Reconnection reconnection attempt
+Server->Storage: Check for connection in storage (not found)
+Server->Proxy: Reject reconnection attemp
+Proxy->Client: Forward Rejection
+Client->Client: Close socket. End connection threads
