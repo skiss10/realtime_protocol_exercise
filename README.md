@@ -6,13 +6,13 @@ This project is a client-server protocol that enables a stateful connection betw
 
 One or more clients can connect to the server and receive a complete sequence of numbers. Individual clients can either be started with an optional argument that specifies the number n of messages to receive or the sequence legnth can be choosen randomly for you. More info on starting these clients below. 
 
-The client's job is to receive the sequence, calculate the checksum, and compare it with the checksum value supplied by the server. Once the checksums have been calculated, the client will close the connection and notify the user of success via stdout.
+The client's job is to receive the sequence, calculate the checksum, and compare it with the checksum value supplied by the server. Once the checksums have been calculated, the client will send a checksum_ack to the server, close the connection, and notify the user of success via stdout.
 
  If the client's connection drops at any point during the sequence transfer, it supplies the server with re-connection parameters that allow the server to continue sequence delivery. The client will indefinitely attempt to reconnect to the server in the event of a disconnection.
 
 ## Server Description
 
-The server receives the connection requests from clients and randomly initializes a PRNG, which generates a unique set of uint32 numbers the each client. The server sends this designated sequence to the client in a stream of discrete messages with a 1-second interval. The server maintains session state for each client for up to 30s during periods of disconnection.
+The server receives the connection requests from clients and randomly initializes a PRNG, which generates a unique set of uint32 numbers for each client. The server sends this designated sequence to the client in a stream of discrete messages with a 1-second interval. The server maintains session state for each client for up to 30s during periods of disconnection.
 
 If a client fails to reconnect within 30s, the server discards the state, and any subsequent reconnection attempts for that sequence from the client will be rejected. The session state for a given client / sequence is discarded after the whole sequence is sent
 
@@ -20,7 +20,7 @@ If a client fails to reconnect within 30s, the server discards the state, and an
 
 To install the necessary dependencies for this project, it is recommended that you use a virtual environment.
 
-Once the virtual environment is activated, you can install the required dependencies with requirements.txt
+Once the virtual environment is activated, you can install the required dependencies with requirements.txt. More on this in Setup.
 
 ## Archive
 
@@ -29,20 +29,12 @@ During the development of this project, my initial focus was on ensuring the ord
 As this was the first project involving concurrency, I experimented with asyncio and multithreading. After becoming more comfortable with multithreading through a tutorial, I decided to use it exclusively. Testing files were created to set up the desired concurrency behavior and, once this was achieved, the original code was ported to these test files and became the main server.py and client.py files. The original files were archived for reference.
 
 ## Constants
-The constants.py file contains several important global variables for the server and client applications. 
 
-The LOG_LEVEL variable determines the level of detail to be logged and can be set to either DEBUG or INFO. 
-    
-The LOG_FILE_PATH variable sets the path for the log file. 
-    
-The HEARTBEAT_INTERVAL variable sets the interval for the heartbeat message to be sent from the client to the server. 
-    
-Finally, the RECONNECT_WINDOW variable determines the time window in seconds within which the server will accept reconnection attempts from a disconnected client. After the RECONNECT_WINDOW time window expires, the server will reject reconnection attempts and remove the client's connection information from the session storage.
+The constants.py file contains several important global variables for the server and client applications. 
 
 ## TODO
 
 This project includes a TODO file that outlines several tasks for future development of the project. 
-
 
 ## Implementation
 
@@ -97,7 +89,7 @@ This project includes a TODO file that outlines several tasks for future develop
 
 6. Once the sequence transfer begins, if you want to simulate disconnections between the server and client, interrupt the proxy application with a keyboard interrupt. If you restart the proxy within 30 seconds, the sequence will continue (depending on when the last heartbeat was received by the client/last heartbeat_ack was received by the server). If you wait more than 30 seconds to restart the proxy, the server will remove the session information for the client, and automatic reconnection attempts from the client through the proxy will be rejected.
 
-7. Once the sequence is completed, both `app.log` in the `logs` directory and the clients' stdout will display "system - SUCCESS! local checksum and server checksum are equal".
+7. Once the sequence is completed, "system - SUCCESS! ... " will appear in `app.log` and both the clients' and server's stdout.
 
 ## Limitations:
 
@@ -105,6 +97,6 @@ This has been tested with up to 15 concurrent clients on a MacBook Pro with an A
 
 ## Sequence Diagram
 
-I've added two sequence diagrams in the assets folder. The ClientServerProtocol shows the behavior of this client-server protocol when there are no disconnections. The BrokenConnection sequence shows a high level of what happens when the proxy is shut down with a keyboard interrupt and not restarted for 30 seconds or more. 
+There are two sequence diagrams in the assets folder. The ClientServerProtocol sequence shows the behavior of this client-server protocol when there are no disconnections. The BrokenConnection sequence shows a high level of what happens when the proxy is shut down with a keyboard interrupt and not restarted for 30 seconds or more. 
 
 The sequences with dotted lines indicate a function or service that runs continuously thoughout the life of the program and / or connection.
