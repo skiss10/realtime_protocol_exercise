@@ -102,3 +102,7 @@ This project includes a TODO file that outlines several tasks for future develop
 ## Limitations:
 
 This has been tested with up to 15 concurrent clients on a MacBook Pro with an Apple M1 pro chip. 
+
+## Sequence Diagram
+
+I've added a sequence diagram to show the behavior of this client-server protocol when there are no disconnections. The sequences with dotted lines indicate a function or service that runs continuously thoughout the life of the program / connection.
