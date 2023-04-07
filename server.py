@@ -22,6 +22,9 @@ from utils.message_sender import send_message
 from utils.checksum import calculate_checksum
 from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, RECONNECT_WINDOW, SERVER_DEFAULT_PORT
 
+# pylint: disable=logging-fstring-interpolation
+# pylint: disable=f-string-without-interpolation
+
 # create a unique server name
 SERVER_NAME = str(uuid.uuid4())
 
@@ -607,7 +610,7 @@ def main():
             print(f"system - listening on localhost:{port} ...")
             logging.info(f" system - listening on localhost:{port} ...")
         
-        except OSError as error:
+        except OSError:
 
             # log error
             print(f"system - socket port has not been closed by OS yet. port: {port}")
@@ -675,7 +678,7 @@ if __name__ == "__main__":
     filename=LOG_FILE_PATH,
     format=f'[%(asctime)s] - Server - {SERVER_NAME} - %(levelname)s - %(message)s',
     datefmt='%m-%d %H:%M:%S')
-    
+
     # log server starting
     print("===== Server - starting %s =====", SERVER_NAME)
     logging.info("===== Server - starting %s =====", SERVER_NAME)

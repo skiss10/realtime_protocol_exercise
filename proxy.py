@@ -65,7 +65,7 @@ def client_router(client_connection, server_connection):
         # read socket messages from client socket
         try:
             source_data = client_connection.conn.recv(4096)
-        
+
         # handle errors for connection reset by client
         except ConnectionResetError:
             print("Connection terminated unexpectedly. Suspending client_router")

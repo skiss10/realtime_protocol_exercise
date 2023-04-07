@@ -20,6 +20,9 @@ from utils.message_sender import send_message
 from utils.connection import Connection
 from utils.checksum import calculate_checksum
 
+# pylint: disable=logging-fstring-interpolation
+# pylint: disable=f-string-without-interpolation
+
 CLIENT_NAME = str(uuid.uuid4())
 
 def end_connection(connection):
@@ -88,7 +91,7 @@ def handle_heartbeats(connection):
     """
     Function to handle incoming messages of type "heartbeat" from server
     """
-    
+
     # log heartbeat
     print(f"message - recieved heartbeat")
     logging.info(f" message - conn id {connection.id} received heartbeat")
@@ -192,10 +195,10 @@ def inbound_message_handler(connection):
             # check if the messages is a Greeting_ack
             if unserialized_message.name == "Greeting_ack":
                 handle_greeting_ack(connection, unserialized_message)
-        
+
             if unserialized_message.name == "Data":
                 handle_data(connection, unserialized_message)
-            
+
             # check if the messages is a heartbeat
             if unserialized_message.name == "Heartbeat":
                 handle_heartbeats(connection)
@@ -236,7 +239,7 @@ def inbound_message_handler(connection):
 def check_heartbeat(connection):
     """
     Function to check that last_heartbeat_ack timestame in connection
-    is being updated. Otherwise the connection is stale and needs to be dropped 
+    is being updated. Otherwise the connection is stale and needs to be dropped
     """
 
     # continuous loop contingent on status of connection's threads
