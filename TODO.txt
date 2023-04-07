@@ -1,7 +1,7 @@
 
 TODO Future:
 
-- Implement a checksum ack from the client to the server to indicate that the server is ready to end that connection (in case disconnection happens right after checksum is sent on the wire from the server)
+- update web sequence to include checksum ack
 
 - Expand on testing. Look into using magic mock or decoupling functions in server.py and client.py from the connection object input paramter
 
