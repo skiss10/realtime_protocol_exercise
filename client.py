@@ -5,7 +5,6 @@ Author: Stephen Kiss (stephenkiss986@gmail.com)
 Date: 01/23/2023
 """
 
-
 import socket
 import threading
 import time
@@ -150,6 +149,10 @@ def handle_checksum(connection, unserialized_message):
     
     # send checksum_ack - failure
     send_message(connection.conn, "checksum_ack", "failure", CLIENT_NAME)
+
+    # inform user of successful transfer of uint32 numbers
+    print(f"system - sent checksum_ack")
+    logging.info(f" system - sent checksum_ack")
 
     # end connection
     end_connection(connection)
