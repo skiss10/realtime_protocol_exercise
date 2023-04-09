@@ -5,7 +5,6 @@ Author: Stephen Kiss (stephenkiss986@gmail.com)
 Date: 01/23/2023
 """
 
-
 import socket
 import threading
 import time
@@ -15,9 +14,11 @@ import logging
 import sys
 import struct
 import random
+import redis
+import bisect
 
 from utils.connection import Connection
-from utils.session_store import InMemoryStore
+from utils.session_store import InMemoryStore, RedisStore
 from utils.message_sender import send_message
 from utils.checksum import calculate_checksum
 from constants import HEARTBEAT_INTERVAL, LOG_LEVEL, LOG_FILE_PATH, RECONNECT_WINDOW, SERVER_DEFAULT_PORT
@@ -30,6 +31,17 @@ SERVER_NAME = str(uuid.uuid4())
 
 # define server interface with memory store
 SESSION_STORAGE = InMemoryStore()
+
+# define server interface with Redis
+REDIS_STORAGE = RedisStore()
+
+def redis_set_store(redis_store, client_id, connection_id, sequence, TTL=30):
+    """
+    Function to set the redis store with a TTL of 30 seconds
+    """
+
+    redis_store.set(f'client_session_state:{client_id}:{connection_id}', pickle.dumps(sequence))
+    redis_store.redis_client.expire(f'client_session_state:{client_id}:{connection_id}', TTL)
 
 def generate_prng_sequence(sequence_length):
     """
@@ -138,6 +150,9 @@ def greeting_message_handler(connection, message):
         send_message(connection.conn, "Greeting_ack", connection.id, SERVER_NAME)
         logging.info(f" message - sent greeting_ack over conn id {connection.id} to client {connection.client_id}")
 
+        # update redis connection store
+        redis_set_store(REDIS_STORAGE, connection.client_id, connection.id, connection.all_uint32_numbers)
+
     except OSError as error:
 
         # log error handling greeting
@@ -164,6 +179,7 @@ def reconnection_attempt_message_handler(connection, message):
 
     # defint the last uint32 number recieved by client
     last_uint32_num = message.data[1]
+    logging.debug(f"reconnection - last reported uint32_number received by client {message.sender_id} was {last_uint32_num}")
 
     # Loop over connections connections in data store
     for _, stored_connection_object in SESSION_STORAGE.store.items():
@@ -221,6 +237,35 @@ def reconnection_attempt_message_handler(connection, message):
                 # end connection with failed reconnect attempt
                 end_connection(connection)
 
+    for key in REDIS_STORAGE.key_list():
+
+        if key.split(':')[1] == alleged_connection_id:
+
+                # log successful reconnection
+                print(f"reconnection - successful reconnection from client {message.sender_id}")
+                logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
+
+                # transfer requested numbers from old connection
+                connection.all_uint32_numbers = REDIS_STORAGE.get(key)
+
+                # bisect all_uint32_numbers by last_uint32_num
+                index = bisect.bisect_left(connection.all_uint32_numbers, last_uint32_num)
+
+                # Get the sequence of numbers before last_uint32_num
+                connection.sent_uint32_numbers = connection.all_uint32_numbers[:index]
+
+                # Get the numbers to be sent after last_uint32_num, including last_uint32_num
+                connection.queued_uint32_numbers = connection.all_uint32_numbers[index:]
+
+                # set connection cleint_id
+                connection.client_id = message.sender_id
+
+                # set connection condition
+                connection.state = "reconnected"
+
+                # send reconnection success message
+                send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
+
     if connection_id_not_found:
 
         # reject reconnection attempt
@@ -244,6 +289,9 @@ def heartbeat_ack_message_handler(connection):
 
             # update last heartbeat ack timestamp
             connection.last_heartbeat_ack = time.time()
+            
+            # update redis connection store
+            redis_set_store(REDIS_STORAGE, connection.client_id, connection.id, connection.all_uint32_numbers)
 
             # log heartbeat ack update
             logging.debug(f"heartbeat - updated heartbeat_ack timestamp on conn id {connection.id}")
@@ -273,6 +321,9 @@ def checksum_ack_message_handler(connection, message):
     # end the connection after sending checksum
     end_connection(connection)
 
+    # remove connection info from local and redis session store
+    SESSION_STORAGE.delete(connection.id)
+    REDIS_STORAGE.delete(f'client_session_state:{connection.client_id}:{connection.id}')
 
 def inbound_message_handler(connection):
     """
@@ -608,7 +659,6 @@ def main():
     # handle optional input paramater for port
     if len(sys.argv) > 1:
         port = int(sys.argv[1])
-
 
     # start thread to manage server session storage
     check_session_store_thread = threading.Thread(target=check_session_store, args=())
