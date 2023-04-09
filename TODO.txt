@@ -1,7 +1,11 @@
+TODO:
+
+- add somethign to readme about installing redis
+
+- Update reconnection handler to point to the right connection object "former connections (in storage) vs connection set up for reconnection" End that new connection, update last heartbeat for hte former connection, etc. etc..
+
 
 TODO Future:
-
-- update web sequence to include checksum ack
 
 - Expand on testing. Look into using magic mock or decoupling functions in server.py and client.py from the connection object input paramter
 
