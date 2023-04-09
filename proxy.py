@@ -6,7 +6,6 @@ Author: Stephen Kiss (stephenkiss986@gmail.com)
 Date: 01/23/2023
 """
 
-
 import socket
 import threading
 import sys
