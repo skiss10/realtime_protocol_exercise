@@ -167,7 +167,6 @@ def server_pulse(connection):
 
     pass
 
-
 def main():
     """
     Main function to handle proxy connections

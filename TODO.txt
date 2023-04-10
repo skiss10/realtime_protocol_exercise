@@ -1,5 +1,7 @@
 TODO:
 
+- Create contorl plane between proxy and servers
+
 - updated reconnection_attempt_message_handler to look at redis keys for reconnection attempts that aren't in local memory
 
 - add somethign to readme about installing redis
@@ -16,4 +18,6 @@ TODO Future:
 - implement redis session store with multiple servers (use multiprocessing with servers)
 
 - Add a variable to constants.py to choose from one of various connection types (SSE vs. raw socket. vs. gRPC)
+
+- Add redis layer to load_balancers too ?
 
