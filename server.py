@@ -611,7 +611,7 @@ def manage_session_store():
         local_connections = SESSION_STORAGE.store.items()
 
         print(f"storage - local connections are {local_connections} for {counter}")
-        logging.info(f" storage - local connections are {local_connections} for {counter}")
+        logging.debug(f"storage - local connections are {local_connections} for {counter}")
 
         # create list for stale connections
         connection_to_remove = []
@@ -673,9 +673,10 @@ def manage_session_store():
             print(f"storage - removed connection {connection_object.id} from session_store")
             logging.info(f" storage - removed connection {connection_object.id} from session_store")
 
-        # sleep thread checking for stale connections
         print(f"storage - local connections are {local_connections} for {counter}")
-        logging.info(f" storage - local connections are {local_connections} for {counter}")
+        logging.debug(f"storage - local connections are {local_connections} for {counter}")
+        
+        # sleep thread checking for stale connections
         time.sleep(1)
 
 def main():
