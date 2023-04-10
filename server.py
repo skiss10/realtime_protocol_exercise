@@ -199,9 +199,6 @@ def reconnection_attempt_message_handler(connection, message):
             # see if the last heartbeat ack was recieved within the reconnection window
             if current_time - stored_connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
 
-                # update the stored connection object state to recovered
-                stored_connection_object.state = 'recovered'
-
                 # log successful reconnection
                 print(f"reconnection - successful reconnection from client {message.sender_id}")
                 logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
@@ -216,11 +213,20 @@ def reconnection_attempt_message_handler(connection, message):
                 connection.queued_uint32_numbers = stored_connection_object.all_uint32_numbers[stored_connection_object.all_uint32_numbers.index(last_uint32_num) + 1:]
                 logging.debug(f"reconnection - last reported uint32_number received by client {message.sender_id} was {last_uint32_num}")
 
+                # update the stored connection object state to recovered
+                stored_connection_object.state = 'recovered'
+
                 # set connection cleint_id
                 connection.client_id = message.sender_id
 
                 # set connection condition
                 connection.state = "reconnected"
+
+                # remove former stored_connection_object id from redis
+                REDIS_STORAGE.delete(f'client_session_state:{stored_connection_object.client_id}:{stored_connection_object.id}')
+
+                # add updated connection id info to redis
+                redis_set_store(REDIS_STORAGE, connection.client_id, connection.id, connection.all_uint32_numbers)
 
                 # send reconnection success message
                 send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
@@ -610,7 +616,7 @@ def manage_session_store():
         # define active connections
         local_connections = SESSION_STORAGE.store.items()
 
-        print(f"storage - local connections are {local_connections} for {counter}")
+        # print(f"storage - local connections are {local_connections} for {counter}")
         logging.debug(f"storage - local connections are {local_connections} for {counter}")
 
         # create list for stale connections
