@@ -199,15 +199,12 @@ def reconnection_attempt_message_handler(connection, message):
             # see if the last heartbeat ack was recieved within the reconnection window
             if current_time - stored_connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
 
-                # # update the connection id
-                # connection.id = alleged_connection_id
+                # update the stored connection object state to recovered
+                stored_connection_object.state = 'recovered'
 
                 # log successful reconnection
                 print(f"reconnection - successful reconnection from client {message.sender_id}")
                 logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
-
-                # update last_heartbeat so check_session_store removes the connection sooner but gives reconnection_attempt_message_handler enough time to get needed data
-                stored_connection_object.last_heartbeat_ack = time.time() - 58
 
                 # transfer requested numbers from old connection
                 connection.all_uint32_numbers = stored_connection_object.all_uint32_numbers
@@ -596,6 +593,8 @@ def manage_session_store():
     attributes.
     """
 
+    counter = 0
+
     # log starting check_session_store
     print("storage - check_session_store started")
     logging.info(f" storage - check_session_store started")
@@ -603,11 +602,16 @@ def manage_session_store():
     # Continuous loop while server running checking session store
     while True:
 
+        counter += 1
+
         # get current timestamp
         current_time = time.time()
 
         # define active connections
         local_connections = SESSION_STORAGE.store.items()
+
+        print(f"storage - local connections are {local_connections} for {counter}")
+        logging.info(f" storage - local connections are {local_connections} for {counter}")
 
         # create list for stale connections
         connection_to_remove = []
@@ -616,16 +620,6 @@ def manage_session_store():
 
             # loop over connection objects in session store
             for _, connection_object in local_connections:
-
-                # check heartbeats for stale connection entries
-                if current_time - connection_object.last_heartbeat_ack > RECONNECT_WINDOW:
-                    
-                    # add stale connections to list for removal if missing heartbeat acks
-                    connection_to_remove.append(connection_object)
-
-                    # log new stale connection
-                    print(f"storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
-                    logging.info(f" storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
 
                 # check if connection has already sent sequence and is ready to be removed from session store
                 if connection_object.state == "completed":
@@ -638,14 +632,24 @@ def manage_session_store():
                     logging.info(f" storage - adding {connection_object.id} to connection removal list, as connection state marked as completed")
 
                 # check if connection has already sent sequence and is ready to be removed from session store
-                if connection_object.state == "recovered":
+                elif connection_object.state == "recovered":
                     
                     # add connection to list for removal
                     connection_to_remove.append(connection_object)
 
                     # log connection completed
-                    print(f"storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered and recovered")
+                    print(f"storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered")
                     logging.info(f" storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered")
+
+                # check heartbeats for stale connection entries
+                elif current_time - connection_object.last_heartbeat_ack > RECONNECT_WINDOW:
+                    
+                    # add stale connections to list for removal if missing heartbeat acks
+                    connection_to_remove.append(connection_object)
+
+                    # log new stale connection
+                    print(f"storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
+                    logging.info(f" storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
 
 
         except OSError as error:
@@ -662,17 +666,16 @@ def manage_session_store():
         # loop over stale connection
         for connection_object in connection_to_remove:
 
-            # determine if stale connection is in session storage
-            if connection_object.id in SESSION_STORAGE.store:
+            # remove the connection from session storage
+            SESSION_STORAGE.delete(connection_object.id)
 
-                # remove the connection from session storage
-                SESSION_STORAGE.delete(connection_object.id)
-
-                # log removal of connection from session storage
-                print(f"storage - removed connection {connection_object.id} from session_store")
-                logging.info(f" storage - removed connection {connection_object.id} from session_store")
+            # log removal of connection from session storage
+            print(f"storage - removed connection {connection_object.id} from session_store")
+            logging.info(f" storage - removed connection {connection_object.id} from session_store")
 
         # sleep thread checking for stale connections
+        print(f"storage - local connections are {local_connections} for {counter}")
+        logging.info(f" storage - local connections are {local_connections} for {counter}")
         time.sleep(1)
 
 def main():
