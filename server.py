@@ -331,8 +331,9 @@ def checksum_ack_message_handler(connection, message):
     end_connection(connection)
 
     # remove connection info from local and redis session store
-    SESSION_STORAGE.delete(connection.id)
-    REDIS_STORAGE.delete(f'client_session_state:{connection.client_id}:{connection.id}')
+    with connection.threading_lock:
+        SESSION_STORAGE.delete(connection.id)
+        REDIS_STORAGE.delete(f'client_session_state:{connection.client_id}:{connection.id}')
 
 def inbound_message_handler(connection):
     """
@@ -612,7 +613,7 @@ def check_session_store():
             for _, connection_object in active_connections:
 
                 # check heartbeats for stale connection entries
-                if current_time - connection_object.last_heartbeat_ack > RECONNECT_WINDOW +1: # adding one second to give reconnection_attempt_message_handler time to evaluate last heartbeat
+                if current_time - connection_object.last_heartbeat_ack > RECONNECT_WINDOW:
                     
                     # add stale connections to list for removal if missing heartbeat acks
                     stale_connections.append(connection_object)
@@ -626,6 +627,11 @@ def check_session_store():
                     
                     # add connection to list for removal
                     stale_connections.append(connection_object)
+
+                    # log connection completed
+                    print(f"storage - adding {connection_object.id} to session removal list, as connection stated marked as completed")
+                    logging.info(f" storage - adding {connection_object.id} to session removal list, as connection stated marked as completed")
+
 
         except OSError as error:
             
@@ -645,11 +651,12 @@ def check_session_store():
             if connection_object.id in SESSION_STORAGE.store:
 
                 # remove the connection from session storage
-                SESSION_STORAGE.delete(connection_object.id)
+                with connection_object.threading_lock:
+                    SESSION_STORAGE.delete(connection_object.id)
 
-                # log removal of connection from session storage
-                print(f"storage - removed connection {connection_object.id} from session_store")
-                logging.info(f" storage - removed connection {connection_object.id} from session_store")
+                    # log removal of connection from session storage
+                    print(f"storage - removed connection {connection_object.id} from session_store")
+                    logging.info(f" storage - removed connection {connection_object.id} from session_store")
 
         # sleep thread checking for stale connections
         time.sleep(1)
