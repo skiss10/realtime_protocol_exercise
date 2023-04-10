@@ -20,7 +20,7 @@ class Connection:
         self.connection_thread_stopper = threading.Event()
         self.last_heartbeat_ack = time.time()
         self.last_heartbeat_rcvd = time.time()
-        self.state = None # initial_connection, disconnected, reconnected, completed
+        self.state = None # initial_connection, disconnected, reconnected, closed
         self.client_id = None
         self.threading_lock = threading.Lock()
         self.sequence_length = None
@@ -29,4 +29,6 @@ class Connection:
         self.sent_uint32_numbers = []
         self.uint32_numbers_recieved = []
         self.checksum = None
+        self.replacement_connection_id = None
+        self.is_complete = False
 
