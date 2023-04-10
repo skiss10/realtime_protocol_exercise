@@ -103,7 +103,7 @@ def handle_heartbeats(connection):
     logging.info(f" heartbeat - sent heartbeat_ack")
 
     # update last heartbeat timestamp
-    connection.last_heartbeat_ack = time.time()
+    connection.last_heartbeat_rcvd = time.time()
 
 def handle_data(connection, unserialized_message):
     """
@@ -247,7 +247,7 @@ def inbound_message_handler(connection):
 
 def check_heartbeat(connection):
     """
-    Function to check that last_heartbeat_ack timestame in connection
+    Function to check that last_heartbeat_rcvd timestame in connection
     is being updated. Otherwise the connection is stale and needs to be dropped
     """
 
@@ -258,7 +258,7 @@ def check_heartbeat(connection):
         current_time = time.time()
 
         # check how long its been since last heartbeat for this connection
-        if current_time - connection.last_heartbeat_ack > 3 * HEARTBEAT_INTERVAL:
+        if current_time - connection.last_heartbeat_rcvd > 3 * HEARTBEAT_INTERVAL:
 
             # inform user of missed heartbeats
             print(f"heartbeat - multiple missed heartbeats from server.")
@@ -284,7 +284,7 @@ def connection_handler(connection):
     """
 
     # define first hearbeat timestamp as this function's initiation timestamp
-    connection.last_heartbeat_ack = time.time()
+    connection.last_heartbeat_rcvd = time.time()
 
     # spawn a new thread to handle inbound messages from server
     inbound_message_thread = threading.Thread(target=inbound_message_handler, args=(connection,))

@@ -19,6 +19,7 @@ class Connection:
         self.addr = addr
         self.connection_thread_stopper = threading.Event()
         self.last_heartbeat_ack = time.time()
+        self.last_heartbeat_rcvd = time.time()
         self.state = None # initial_connection, disconnected, reconnected, completed
         self.client_id = None
         self.threading_lock = threading.Lock()
