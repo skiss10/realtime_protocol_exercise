@@ -187,7 +187,8 @@ def reconnection_attempt_message_handler(connection, message):
         if stored_connection_object.id == alleged_connection_id:
 
             # log that we found the connection_id provided by the connected peer
-            logging.info(f" reconnection - conn id {connection.id} recieved reconnection attempt for connection {alleged_connection_id} by {message.sender_id}")
+            print(f"reconnection - found alleged connection {alleged_connection_id} locally")
+            logging.info(f"reconnection - found alleged connection {alleged_connection_id} locally")
 
             # set boolean as connection id from message found in storage
             connection_id_not_found =  False
@@ -198,10 +199,8 @@ def reconnection_attempt_message_handler(connection, message):
             # see if the last heartbeat ack was recieved within the reconnection window
             if current_time - stored_connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
 
-                # remove connections in redis
-
-                # update the connection id
-                connection.id = alleged_connection_id
+                # # update the connection id
+                # connection.id = alleged_connection_id
 
                 # log successful reconnection
                 print(f"reconnection - successful reconnection from client {message.sender_id}")
@@ -229,6 +228,9 @@ def reconnection_attempt_message_handler(connection, message):
                 # send reconnection success message
                 send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
 
+                # stop evaluating other connections in local storage
+                break
+
             else:
 
                 # reject reconnection attempt
@@ -241,39 +243,39 @@ def reconnection_attempt_message_handler(connection, message):
                 # end connection with failed reconnect attempt
                 end_connection(connection)
 
-        else:
+        # else:
             
-            for key in REDIS_STORAGE.key_list():
+        #     for key in REDIS_STORAGE.key_list():
 
-                if key.split(':')[1] == alleged_connection_id:
+        #         if key.split(':')[1] == alleged_connection_id:
 
-                        # log successful reconnection
-                        print(f"reconnection - successful reconnection from client {message.sender_id}")
-                        logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
+        #                 # log successful reconnection
+        #                 print(f"reconnection - successful reconnection from client {message.sender_id}")
+        #                 logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
 
-                        # transfer requested numbers from old connection
-                        connection.all_uint32_numbers = REDIS_STORAGE.get(key)
+        #                 # transfer requested numbers from old connection
+        #                 connection.all_uint32_numbers = REDIS_STORAGE.get(key)
 
-                        # bisect all_uint32_numbers by last_uint32_num
-                        index = bisect.bisect_left(connection.all_uint32_numbers, last_uint32_num)
+        #                 # bisect all_uint32_numbers by last_uint32_num
+        #                 index = bisect.bisect_left(connection.all_uint32_numbers, last_uint32_num)
 
-                        # Get the sequence of numbers before last_uint32_num
-                        connection.sent_uint32_numbers = connection.all_uint32_numbers[:index]
+        #                 # Get the sequence of numbers before last_uint32_num
+        #                 connection.sent_uint32_numbers = connection.all_uint32_numbers[:index]
 
-                        # Get the numbers to be sent after last_uint32_num, including last_uint32_num
-                        connection.queued_uint32_numbers = connection.all_uint32_numbers[index:]
+        #                 # Get the numbers to be sent after last_uint32_num, including last_uint32_num
+        #                 connection.queued_uint32_numbers = connection.all_uint32_numbers[index:]
 
-                        # set connection cleint_id
-                        connection.client_id = message.sender_id
+        #                 # set connection cleint_id
+        #                 connection.client_id = message.sender_id
 
-                        # set connection condition
-                        connection.state = "reconnected"
+        #                 # set connection condition
+        #                 connection.state = "reconnected"
 
-                        # update connection id to old id
-                        connection.id = alleged_connection_id
+        #                 # update connection id to old id
+        #                 connection.id = alleged_connection_id
 
-                        # send reconnection success message
-                        send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
+        #                 # send reconnection success message
+        #                 send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
 
     if connection_id_not_found:
 
@@ -330,10 +332,10 @@ def checksum_ack_message_handler(connection, message):
     # end the connection after sending checksum
     end_connection(connection)
 
-    # remove connection info from local and redis session store
-    with connection.threading_lock:
-        SESSION_STORAGE.delete(connection.id)
-        REDIS_STORAGE.delete(f'client_session_state:{connection.client_id}:{connection.id}')
+    # # remove connection info from local and redis session store
+    # with connection.threading_lock:
+    #     SESSION_STORAGE.delete(connection.id)
+    #     REDIS_STORAGE.delete(f'client_session_state:{connection.client_id}:{connection.id}')
 
 def inbound_message_handler(connection):
     """
@@ -430,8 +432,6 @@ def check_heartbeat_ack(connection):
             logging.error(f"heartbeat - error {error} in check_heartbeat_ack")
             logging.error(f"system - conn id {connection.id} stopping check_heartbeat_ack")
             
-            # stop / suspend check_heartbeat_ack
-            break
 
         # sleep thread checking for heartbeat_acks
         time.sleep(1)
@@ -441,14 +441,15 @@ def send_sequence(connection):
     Function to generate messages to peer
     """
 
-    print(f"sequence - started sending sequence to client {connection.client_id}")
-    logging.info(f" sequence - started sending sequence to client {connection.client_id}")
-
     # continuous loop contingent on status of connection's threads
     while not connection.connection_thread_stopper.is_set():
 
         # check connection state before sending / continuing data stream
         if connection.state == "initial_connection":
+
+            # log sequence start
+            print(f"sequence - started sending sequence to client {connection.client_id}")
+            logging.info(f" sequence - started sending sequence to client {connection.client_id}")
 
             try:
 
@@ -483,6 +484,10 @@ def send_sequence(connection):
             send_checksum(connection)
 
         elif connection.state == "reconnected":
+
+            # log sequence restrt
+            print(f"sequence - continuing sequence to client {connection.client_id} over connection id {connection.id}")
+            logging.info(f" sequence - continuing sequence to client {connection.client_id} over connection id {connection.id}")
 
             # try sending user input messages to peer
             try:
@@ -585,10 +590,10 @@ def client_handler(connection):
     # log starting thread
     logging.debug(f"system - conn id {connection.id} started send_heartbeat")
 
-def check_session_store():
+def manage_session_store():
     """
-    Function to keep session storage fresh based on each connection's
-    last_heartbeat_ack. If over RECONNECT_WINDOW, remove it from storage
+    Function to keep session storage up to date based on each connection's
+    attributes.
     """
 
     # log starting check_session_store
@@ -602,40 +607,50 @@ def check_session_store():
         current_time = time.time()
 
         # define active connections
-        active_connections = SESSION_STORAGE.store.items()
+        local_connections = SESSION_STORAGE.store.items()
 
         # create list for stale connections
-        stale_connections = []
+        connection_to_remove = []
 
         try:
 
             # loop over connection objects in session store
-            for _, connection_object in active_connections:
+            for _, connection_object in local_connections:
 
                 # check heartbeats for stale connection entries
                 if current_time - connection_object.last_heartbeat_ack > RECONNECT_WINDOW:
                     
                     # add stale connections to list for removal if missing heartbeat acks
-                    stale_connections.append(connection_object)
+                    connection_to_remove.append(connection_object)
 
                     # log new stale connection
-                    print(f"storage - adding {connection_object.id} to session removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
-                    logging.info(f" storage - adding {connection_object.id} to session removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
+                    print(f"storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
+                    logging.info(f" storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
 
                 # check if connection has already sent sequence and is ready to be removed from session store
                 if connection_object.state == "completed":
                     
                     # add connection to list for removal
-                    stale_connections.append(connection_object)
+                    connection_to_remove.append(connection_object)
 
                     # log connection completed
-                    print(f"storage - adding {connection_object.id} to session removal list, as connection stated marked as completed")
-                    logging.info(f" storage - adding {connection_object.id} to session removal list, as connection stated marked as completed")
+                    print(f"storage - adding {connection_object.id} to connection removal list, as connection state marked as completed")
+                    logging.info(f" storage - adding {connection_object.id} to connection removal list, as connection state marked as completed")
+
+                # check if connection has already sent sequence and is ready to be removed from session store
+                if connection_object.state == "recovered":
+                    
+                    # add connection to list for removal
+                    connection_to_remove.append(connection_object)
+
+                    # log connection completed
+                    print(f"storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered and recovered")
+                    logging.info(f" storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered")
 
 
         except OSError as error:
             
-            # log error 
+            # log error
             print(f"storage - error {error} in check_session_store")
             print(f"system - stopping check_session_store")
             logging.error(f"storage - error {error} in check_session_store")
@@ -645,18 +660,17 @@ def check_session_store():
             break
 
         # loop over stale connection
-        for connection_object in stale_connections:
+        for connection_object in connection_to_remove:
 
             # determine if stale connection is in session storage
             if connection_object.id in SESSION_STORAGE.store:
 
                 # remove the connection from session storage
-                with connection_object.threading_lock:
-                    SESSION_STORAGE.delete(connection_object.id)
+                SESSION_STORAGE.delete(connection_object.id)
 
-                    # log removal of connection from session storage
-                    print(f"storage - removed connection {connection_object.id} from session_store")
-                    logging.info(f" storage - removed connection {connection_object.id} from session_store")
+                # log removal of connection from session storage
+                print(f"storage - removed connection {connection_object.id} from session_store")
+                logging.info(f" storage - removed connection {connection_object.id} from session_store")
 
         # sleep thread checking for stale connections
         time.sleep(1)
@@ -677,7 +691,7 @@ def main():
         port = int(sys.argv[1])
 
     # start thread to manage server session storage
-    check_session_store_thread = threading.Thread(target=check_session_store, args=())
+    check_session_store_thread = threading.Thread(target=manage_session_store, args=())
     check_session_store_thread.start()
 
     # log starting server session storage
