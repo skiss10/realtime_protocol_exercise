@@ -34,7 +34,7 @@ SESSION_STORAGE = InMemoryStore()
 # define server interface with Redis
 REDIS_STORAGE = RedisStore()
 
-def redis_set_store(redis_store, client_id, connection_id, sequence, TTL=30):
+def redis_set_store(redis_store, client_id, connection_id, sequence, TTL = 30):
     """
     Function to set the redis store with a TTL of 30 seconds
     """
@@ -273,6 +273,10 @@ def reconnection_attempt_message_handler(connection, message):
 
         #                 # send reconnection success message
         #                 send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
+
+    if connection_id_not_found:
+        # check redis storage
+        pass
 
     if connection_id_not_found:
 
