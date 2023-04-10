@@ -14,7 +14,6 @@ import logging
 import sys
 import struct
 import random
-import redis
 import bisect
 
 from utils.connection import Connection
@@ -199,6 +198,11 @@ def reconnection_attempt_message_handler(connection, message):
             # see if the last heartbeat ack was recieved within the reconnection window
             if current_time - stored_connection_object.last_heartbeat_ack < RECONNECT_WINDOW:
 
+                # remove connections in redis
+
+                # update the connection id
+                connection.id = alleged_connection_id
+
                 # log successful reconnection
                 print(f"reconnection - successful reconnection from client {message.sender_id}")
                 logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
@@ -237,34 +241,39 @@ def reconnection_attempt_message_handler(connection, message):
                 # end connection with failed reconnect attempt
                 end_connection(connection)
 
-    for key in REDIS_STORAGE.key_list():
+        else:
+            
+            for key in REDIS_STORAGE.key_list():
 
-        if key.split(':')[1] == alleged_connection_id:
+                if key.split(':')[1] == alleged_connection_id:
 
-                # log successful reconnection
-                print(f"reconnection - successful reconnection from client {message.sender_id}")
-                logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
+                        # log successful reconnection
+                        print(f"reconnection - successful reconnection from client {message.sender_id}")
+                        logging.info(f" reconnection - successful reconnection from client {message.sender_id}")
 
-                # transfer requested numbers from old connection
-                connection.all_uint32_numbers = REDIS_STORAGE.get(key)
+                        # transfer requested numbers from old connection
+                        connection.all_uint32_numbers = REDIS_STORAGE.get(key)
 
-                # bisect all_uint32_numbers by last_uint32_num
-                index = bisect.bisect_left(connection.all_uint32_numbers, last_uint32_num)
+                        # bisect all_uint32_numbers by last_uint32_num
+                        index = bisect.bisect_left(connection.all_uint32_numbers, last_uint32_num)
 
-                # Get the sequence of numbers before last_uint32_num
-                connection.sent_uint32_numbers = connection.all_uint32_numbers[:index]
+                        # Get the sequence of numbers before last_uint32_num
+                        connection.sent_uint32_numbers = connection.all_uint32_numbers[:index]
 
-                # Get the numbers to be sent after last_uint32_num, including last_uint32_num
-                connection.queued_uint32_numbers = connection.all_uint32_numbers[index:]
+                        # Get the numbers to be sent after last_uint32_num, including last_uint32_num
+                        connection.queued_uint32_numbers = connection.all_uint32_numbers[index:]
 
-                # set connection cleint_id
-                connection.client_id = message.sender_id
+                        # set connection cleint_id
+                        connection.client_id = message.sender_id
 
-                # set connection condition
-                connection.state = "reconnected"
+                        # set connection condition
+                        connection.state = "reconnected"
 
-                # send reconnection success message
-                send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
+                        # update connection id to old id
+                        connection.id = alleged_connection_id
+
+                        # send reconnection success message
+                        send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
 
     if connection_id_not_found:
 
