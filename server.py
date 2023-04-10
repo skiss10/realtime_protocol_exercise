@@ -120,9 +120,6 @@ def send_checksum(connection):
     print(f"checksum - sent checksum: {checksum} to client {connection.client_id}")
     logging.info(f" checksum - sent checksum: {checksum} to client {connection.client_id}")
 
-    # set connection state to completed
-    connection.state = "completed"
-
 def greeting_message_handler(connection, message):
     """
     Function to handle client greeting message
@@ -213,6 +210,9 @@ def reconnection_attempt_message_handler(connection, message):
                 connection.queued_uint32_numbers = stored_connection_object.all_uint32_numbers[stored_connection_object.all_uint32_numbers.index(last_uint32_num) + 1:]
                 logging.debug(f"reconnection - last reported uint32_number received by client {message.sender_id} was {last_uint32_num}")
 
+                # set replacement connection
+                stored_connection_object.replacement_connection_id = connection.id
+
                 # update the stored connection object state to recovered
                 stored_connection_object.state = 'recovered'
 
@@ -221,12 +221,6 @@ def reconnection_attempt_message_handler(connection, message):
 
                 # set connection condition
                 connection.state = "reconnected"
-
-                # remove former stored_connection_object id from redis
-                REDIS_STORAGE.delete(f'client_session_state:{stored_connection_object.client_id}:{stored_connection_object.id}')
-
-                # add updated connection id info to redis
-                redis_set_store(REDIS_STORAGE, connection.client_id, connection.id, connection.all_uint32_numbers)
 
                 # send reconnection success message
                 send_message(connection.conn, "Reconnect_accepted", connection.id, send_message)
@@ -332,13 +326,15 @@ def checksum_ack_message_handler(connection, message):
         print(f"system - FAILED! client checksum and server checksum are not equal")
         logging.info(f"system - FAILED! client checksum and server checksum are not equal")
 
+    # set connection state to completed
+    connection.is_complete = True
+
+    # log connection state sent to completed
+    print(f"connection - connection id {connection.id} to client {connection.client_id} set to state {connection.state}")
+    logging.info(f" connection - connection id {connection.id} to client {connection.client_id} set to state {connection.state}")
+
     # end the connection after sending checksum
     end_connection(connection)
-
-    # # remove connection info from local and redis session store
-    # with connection.threading_lock:
-    #     SESSION_STORAGE.delete(connection.id)
-    #     REDIS_STORAGE.delete(f'client_session_state:{connection.client_id}:{connection.id}')
 
 def inbound_message_handler(connection):
     """
@@ -622,52 +618,55 @@ def manage_session_store():
         # create list for stale connections
         connection_to_remove = []
 
-        try:
+        # loop over connection objects in session store
+        for _, connection_object in local_connections:
 
-            # loop over connection objects in session store
-            for _, connection_object in local_connections:
+            # check if connection has already sent sequence and is ready to be removed from session store
+            if connection_object.is_complete:
+                
+                # add connection to list for removal
+                connection_to_remove.append(connection_object)
 
-                # check if connection has already sent sequence and is ready to be removed from session store
-                if connection_object.state == "completed":
-                    
-                    # add connection to list for removal
-                    connection_to_remove.append(connection_object)
+                # log connection finished
+                print(f"storage - adding {connection_object.id} to connection removal list, as connection state marked as completed")
+                logging.info(f" storage - adding {connection_object.id} to connection removal list, as connection state marked as completed")
 
-                    # log connection completed
-                    print(f"storage - adding {connection_object.id} to connection removal list, as connection state marked as completed")
-                    logging.info(f" storage - adding {connection_object.id} to connection removal list, as connection state marked as completed")
+                # remove connection id from redis
+                REDIS_STORAGE.delete(f'client_session_state:{connection_object.client_id}:{connection_object.id}')
 
-                # check if connection has already sent sequence and is ready to be removed from session store
-                elif connection_object.state == "recovered":
-                    
-                    # add connection to list for removal
-                    connection_to_remove.append(connection_object)
+                # log connection removed from redis
+                print(f"storage - removed connection {connection_object.id} from redis")
+                logging.info(f" storage - removed connection {connection_object.id} from redis")
 
-                    # log connection completed
-                    print(f"storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered")
-                    logging.info(f" storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered")
+            # check if connection has already sent sequence and is ready to be removed from session store
+            elif connection_object.state == "recovered":
+                
+                # add connection to list for removal
+                connection_to_remove.append(connection_object)
 
-                # check heartbeats for stale connection entries
-                elif current_time - connection_object.last_heartbeat_ack > RECONNECT_WINDOW:
-                    
-                    # add stale connections to list for removal if missing heartbeat acks
-                    connection_to_remove.append(connection_object)
+                # log connection finished
+                print(f"storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered")
+                logging.info(f" storage - adding {connection_object.id} to connection removal list, as connection state marked as recovered")
 
-                    # log new stale connection
-                    print(f"storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
-                    logging.info(f" storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
+                # remove former stored_connection_object id from redis
+                REDIS_STORAGE.delete(f'client_session_state:{connection_object.client_id}:{connection_object.id}')
 
+                # add updated connection id info to redis
+                redis_set_store(REDIS_STORAGE, connection_object.client_id, connection_object.replacement_connection_id, connection_object.all_uint32_numbers)
 
-        except OSError as error:
-            
-            # log error
-            print(f"storage - error {error} in check_session_store")
-            print(f"system - stopping check_session_store")
-            logging.error(f"storage - error {error} in check_session_store")
-            logging.error(f"system - stopping check_session_store")
+                # log redis updates
+                print(f"reconnection - updated client-connection key in redis for this sequence from connection id {connection_object.id} to {connection_object.replacement_connection_id}")
+                logging.info(f" reconnection - updated client-connection key in redis for this sequence from connection id {connection_object.id} to {connection_object.replacement_connection_id}")
 
-            # stop / suspend check_session_store
-            break
+            # check heartbeats for stale connection entries
+            elif current_time - connection_object.last_heartbeat_ack > RECONNECT_WINDOW:
+                
+                # add stale connections to list for removal if missing heartbeat acks
+                connection_to_remove.append(connection_object)
+
+                # log new stale connection
+                print(f"storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
+                logging.info(f" storage - adding {connection_object.id} to connection removal list, no new heartbeats_acks over that connection's socket within RECONNECT_WINDOW")
 
         # loop over stale connection
         for connection_object in connection_to_remove:
@@ -679,7 +678,7 @@ def manage_session_store():
             print(f"storage - removed connection {connection_object.id} from session_store")
             logging.info(f" storage - removed connection {connection_object.id} from session_store")
 
-        print(f"storage - local connections are {local_connections} for {counter}")
+        # print(f"storage - local connections are {local_connections} for {counter}")
         logging.debug(f"storage - local connections are {local_connections} for {counter}")
         
         # sleep thread checking for stale connections
